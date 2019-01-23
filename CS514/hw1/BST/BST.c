@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 struct treenode {
    struct treenode* left;
@@ -8,76 +9,74 @@ struct treenode {
 
 
 //insert value targ into BST
-void insert(struct treenode* head, int targ){
-
-  printf("Current is %d new is %d\n", head->value, targ);
-  if(targ <= head->value){
-    if(head->left){
-      printf("\tHeading left and recursing\n");
-      insert(head->left, targ);
+void insert(struct treenode *root,int val)
+{
+  if(val > root->value){
+    //if greater, add to right
+    if(root->right == NULL){
+      //if there is nothing there, set it to leaf
+      struct treenode* leaf=(struct treenode*)malloc(sizeof(struct treenode));
+      leaf->value = val;
+      leaf->left = NULL;
+      leaf->right = NULL;
+      root->right = leaf;
     }
     else{
-      printf("\tHeading left to add it\n");
-      struct treenode leaf;
-      leaf.value = targ;
-      leaf.left = 0;
-      leaf.right = 0;
-      head->left = &leaf;
-      printf("added to the left of %d the value %d\n", head->value, leaf.value);
+      //if there is something there, recurse
+      insert(root->right, val);
     }
   }
-  else{ //if targ > head->value
-    if(head->right){
-      printf("\tHeading right and recursing\n");
-      insert(head->right, targ);
+  else{
+    //if equal to or less than, add to left
+    if(root->left == NULL){
+      //if there is nothing there, set it to leaf
+      struct treenode* leaf=(struct treenode*)malloc(sizeof(struct treenode));
+      leaf->value = val;
+      leaf->left = NULL;
+      leaf->right = NULL;
+      root->left = leaf;
     }
     else{
-      printf("\tHeading right to add it\n");
-      struct treenode leaf;
-      leaf.value = targ;
-      leaf.left = 0;
-      leaf.right = 0;
-      head->right = &leaf;
-      printf("added to the right of %d the value %d\n", head->value, leaf.value);
+      //if there is something there, recurse
+      insert(root->left, val);
     }
   }
-}
 
-int getDepth(struct treenode* head){
-  int depth = 0;
-  while(head->left){
-    head = head->left;
-    depth++;
-  }
-  return depth;
 }
 
 void preorderPrint(struct treenode* head){
-  if(head->value)
+  if(head != NULL)
+  {
     printf("%d\n", head->value);
-  else
-    return;
-  if(head->left)
     preorderPrint(head->left);
-  if(head->right)
     preorderPrint(head->right);
+  }
+}
+
+
+
+//do it again, without recursion!?
+void nr_preorderPrint(struct treenode* head){
+  if(head != NULL)
+  {
+    printf("%d\n", head->value);
+    preorderPrint(head->left);
+    preorderPrint(head->right);
+  }
 }
 
 int main(int argc, char **argv){
-  struct treenode head;
-  head.value = 19;
-  head.left = 0;
-  head.right = 0;
+  struct treenode* head;
+  head=(struct treenode*)malloc(sizeof(struct treenode));
+  head->value = 10;
+  head->left = NULL;
+  head->right = NULL;
 
-//  preorderPrint(&head);
+  insert(head, 20);
+  insert(head, 8);
+  insert(head, 9);
+  insert(head, 2);
+  insert(head, 25);
 
-  insert(&head, 10);
-  insert(&head, 30);
-  preorderPrint(&head);/*
-  insert(&head, 5);
-  insert(&head, 15);
-  insert(&head, 20);
-  insert(&head, 25);*/
-
-//  preorderPrint(&head);
+  preorderPrint(head);
 }
