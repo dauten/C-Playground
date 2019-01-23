@@ -2,6 +2,7 @@
 
 struct listnode {
    struct listnode* next;
+   struct listnode* prev;
    int value;
 };
 
@@ -42,11 +43,23 @@ int getDepth(struct listnode* head){
   return depth;
 }
 
-struct listnode* findNthToLastElement(struct listnode* head, int N){
 
+struct listnode* findNthToLastElement(struct listnode* head, int N){
   return findNthElement(head, getDepth(head)-N );
 }
 
+struct listnode* reverse(struct listnode* head){
+  int d = getDepth(head); //get length of LL
+  if(d % 2 == 0){ //list is even
+    for(int i = 0; i < d/2; i++){
+      struct listnode* temp;
+      temp->next = head->next;
+      temp->prev = head->prev;
+      temp->value = head->value;
+      head = findNthToLastElement(head, i);
+    }
+  }
+}
 int main(int argc, char **argv){
 
   struct listnode A, B, C, D, E;
@@ -62,11 +75,18 @@ int main(int argc, char **argv){
   D.next = &E;
   E.next = 0;
 
+  A.prev = 0;
+  B.prev = &A;
+  C.prev = &B;
+  D.prev = &C;
+  E.prev = &D;
+
 
   printList(&A);
-  printf("3rd element is %d\n", findNthElement(&A, 3)->value);
+  printf("3rd element is %d\n", findNthElement(&A, 0)->value);
   removeNthElement(&A, 3);
   printf("item removed\n");
   printList(&A);
-  printf("2nd to last element is %d\n", findNthToLastElement(&A, 2)->value);
+  printf("0nd to last element is %d\n", findNthToLastElement(&A, 4)->value);
+
 }
