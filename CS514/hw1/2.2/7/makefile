@@ -1,2 +1,2 @@
 all: doublyLinkedList.c
-	gcc doubleLinkedList.c
+	gcc doublyLinkedList.c

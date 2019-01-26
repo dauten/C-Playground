@@ -51,26 +51,31 @@ struct listnode* findNthToLastElement(struct listnode* head, int N){
 }
 
 struct listnode* reverse(struct listnode** head){
-  int f = 1;
-  while((*head)->next){
-    printf("this is %d\n", (*head)->value);
-    struct listnode* temp = (*head)->prev;
-    (*head)->prev = (*head)->next;
-    (*head)->next = temp;
-    if(f){
-      f = 0;
-      (*head)->next = NULL;
-    }
+  struct listnode* first = (*head)->prev;
+  while(first->next){
+    struct listnode* temp = first->prev;
+    first->prev = first->next;
+    first->next = temp;
 
-    (*head) = (*head)->prev;
+
+    first = first->prev;
 
   }
-  (*head)->next = (*head)->prev;
-  (*head)->prev = NULL;
-  return (*head);
+  first->next = first->prev;
+  first->prev = NULL;
+  return first;
 }
 
-
+int isPalyndrome(struct listnode* node){
+  struct listnode* temp = reverse(&node);
+  while(node->next || temp->next){
+    if(node && temp && node->value == temp->value)
+      return 0;
+    node = node->next;
+    temp = temp->next;
+  }
+  return 1;
+}
 
 int main(int argc, char **argv){
 
@@ -87,14 +92,14 @@ int main(int argc, char **argv){
   D.next = &E;
   E.next = 0;
 
-  A.prev = 0;
+  A.prev = NULL;
   B.prev = &A;
   C.prev = &B;
   D.prev = &C;
   E.prev = &D;
 
   printList(&A);
-  printf("rewind:\n");
+  printf("That string reversed is:\n");
   printList(reverse(&A));
 
 }
