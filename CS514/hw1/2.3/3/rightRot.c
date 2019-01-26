@@ -15,6 +15,6 @@ int rightRot(int x, int n){
 }
 
 int main(int argc, char* argv){
-  printf("%d\n", rightRot(60, 4));
+  printf("The number 60 bitrotated 4 to the right is %d\n", rightRot(60, 4));
   return 0;
 }

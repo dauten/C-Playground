@@ -7,22 +7,6 @@ struct treenode {
    int value;
 };
 
-struct stacknode {
-  struct stacknode* below; //element added immediately previously
-  struct treenode* value;
-};
-
-struct stacknode* push(struct stacknode* top, struct treenode* add){
-  struct stacknode* new = (struct stacknode*)malloc(sizeof(struct stacknode));
-  new->value = add;
-  new->below = top;
-  return new;
-}
-
-struct stacknode* pop(struct stacknode* top){
-  return top->below;
-}
-
 //insert value targ into BST
 void insert(struct treenode *root,int val)
 {
@@ -68,25 +52,6 @@ void preorderPrint(struct treenode* head){
   }
 }
 
-
-
-//do it again, without recursion!?
-void nr_preorderPrint(struct treenode* head){
-  struct stacknode* stack = (struct stacknode*)malloc(sizeof(struct stacknode));
-  while(1){
-    while(head != NULL){
-      printf("%d\n", head->value);
-      stack = push(stack, head);
-      head = head->left;
-    }
-    if(stack->value == NULL)
-      return;
-    head = stack->value;
-    stack = pop(stack);
-    head = head->right;
-  }
-}
-
 int main(int argc, char **argv){
   struct treenode* head;
   head=(struct treenode*)malloc(sizeof(struct treenode));
@@ -100,9 +65,9 @@ int main(int argc, char **argv){
   insert(head, 2);
   insert(head, 25);
 
+  printf("The Tree in Preorder is:\n");
+
   preorderPrint(head);
-  printf("\n\n");
-  nr_preorderPrint(head);
 
 
 

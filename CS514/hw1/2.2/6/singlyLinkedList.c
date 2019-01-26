@@ -63,10 +63,7 @@ int main(int argc, char **argv){
   E.next = 0;
 
 
-  printList(&A);
-  printf("3rd element is %d\n", findNthElement(&A, 3)->value);
-  removeNthElement(&A, 3);
-  printf("item removed\n");
+  printf("The List is:\n");
   printList(&A);
   printf("2nd to last element is %d\n", findNthToLastElement(&A, 2)->value);
 }

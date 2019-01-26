@@ -19,6 +19,6 @@ int bitcount(unsigned x)
 }
 
 int main(int argc, char **argv){
-  printf("The number has %d 1's\n", bitcount(3));
+  printf("The number 4090 has %d 1's\n", bitcount(4090));
   return 0;
 }

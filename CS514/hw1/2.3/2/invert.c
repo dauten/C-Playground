@@ -22,6 +22,6 @@ int invert(unsigned x, int p, int n){
 }
 
 int main(int argc, char* argv){
-  printf("%d\n", invert(64170, 7, 5));
+  printf("The number 64170 inverted from 7 to 12 is %d\n", invert(64170, 7, 5));
   return 0;
 }

@@ -19,7 +19,7 @@ int setBits(int x, int p, int n, int y){
 }
 
 int main(int argc, char* argv){
-  printf("%d\n(should be 45738)\n", setBits(43690, 2, 4, 52428));
+  printf("The number 43690 but setting bits 2 through 6 to the 4 rightmost bits of 52428 is %d\n", setBits(43690, 2, 4, 52428));
 
   return 0;
 }

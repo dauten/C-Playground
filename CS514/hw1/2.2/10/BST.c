@@ -59,16 +59,6 @@ void insert(struct treenode *root,int val)
 
 }
 
-void preorderPrint(struct treenode* head){
-  if(head != NULL)
-  {
-    printf("%d\n", head->value);
-    preorderPrint(head->left);
-    preorderPrint(head->right);
-  }
-}
-
-
 
 //do it again, without recursion!?
 void nr_preorderPrint(struct treenode* head){
@@ -100,8 +90,7 @@ int main(int argc, char **argv){
   insert(head, 2);
   insert(head, 25);
 
-  preorderPrint(head);
-  printf("\n\n");
+  printf("Printing BST preorder without recursion:\n");
   nr_preorderPrint(head);
 
 

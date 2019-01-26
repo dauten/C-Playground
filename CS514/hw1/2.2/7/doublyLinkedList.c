@@ -98,6 +98,7 @@ int main(int argc, char **argv){
   D.prev = &C;
   E.prev = &D;
 
+  printf("Original string is:\n");
   printList(&A);
   printf("That string reversed is:\n");
   printList(reverse(&A));

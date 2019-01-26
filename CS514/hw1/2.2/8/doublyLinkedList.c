@@ -93,8 +93,9 @@ int main(int argc, char **argv){
   D.prev = &C;
   E.prev = &D;
 
+  printf("The Last is:\n");
   printList(&A);
-  printf("rewind:\n");
+  printf("Reversed it is:\n");
   printList(reverse(&A));
 
 }

@@ -16,13 +16,6 @@ struct listnode* findNthElement(struct listnode* head, int N)
   return head;
 }
 
-void removeNthElement(struct listnode* head, int N)
-{
-  for(int i = 0; i < N-1; i++){
-    head = head->next;
-  }
-  head->next = head->next->next;
-}
 
 void printList(struct listnode* head){
   printf("%d", head->value);
@@ -31,20 +24,6 @@ void printList(struct listnode* head){
     printf("->%d", head->value);
   }
   printf("\n");
-}
-
-int getDepth(struct listnode* head){
-  int depth = 0;
-  while(head->next){
-    head = head->next;
-    depth++;
-  }
-  return depth;
-}
-
-struct listnode* findNthToLastElement(struct listnode* head, int N){
-
-  return findNthElement(head, getDepth(head)-N );
 }
 
 int main(int argc, char **argv){
@@ -62,11 +41,7 @@ int main(int argc, char **argv){
   D.next = &E;
   E.next = 0;
 
-
+  printf("The list is:\n");
   printList(&A);
   printf("3rd element is %d\n", findNthElement(&A, 3)->value);
-  removeNthElement(&A, 3);
-  printf("item removed\n");
-  printList(&A);
-  printf("2nd to last element is %d\n", findNthToLastElement(&A, 2)->value);
 }
