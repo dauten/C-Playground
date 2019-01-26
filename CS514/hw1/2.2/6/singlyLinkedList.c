@@ -65,5 +65,5 @@ int main(int argc, char **argv){
 
   printf("The List is:\n");
   printList(&A);
-  printf("2nd to last element is %d\n", findNthToLastElement(&A, 2)->value);
+  printf("2nd to last element (counting very 1st element as element zero) is %d\n", findNthToLastElement(&A, 2)->value);
 }

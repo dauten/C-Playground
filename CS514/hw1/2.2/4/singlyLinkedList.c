@@ -43,5 +43,5 @@ int main(int argc, char **argv){
 
   printf("The list is:\n");
   printList(&A);
-  printf("3rd element is %d\n", findNthElement(&A, 3)->value);
+  printf("3rd element (counting very 1st element as element zero) is %d\n", findNthElement(&A, 3)->value);
 }

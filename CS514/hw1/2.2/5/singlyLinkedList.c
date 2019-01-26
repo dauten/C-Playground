@@ -65,6 +65,6 @@ int main(int argc, char **argv){
   printf("The list is:\n");
   printList(&A);
   removeNthElement(&A, 3);
-  printf("3rd Item removed\n");
+  printf("3rd Item (counting very 1st element as element zero)  removed\n");
   printList(&A);
 }
