@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 struct listnode {
    struct listnode* next;
@@ -49,17 +50,19 @@ struct listnode* findNthToLastElement(struct listnode* head, int N){
 }
 
 struct listnode* reverse(struct listnode* head){
-  int d = getDepth(head); //get length of LL
-  if(d % 2 == 0){ //list is even
-    for(int i = 0; i < d/2; i++){
-      struct listnode* temp;
-      temp->next = head->next;
-      temp->prev = head->prev;
-      temp->value = head->value;
-      head = findNthToLastElement(head, i);
-    }
+  while(head->next){
+    struct listnode* temp = head->prev;
+    head->prev = head->next;
+    head->next = temp;
+    head = head->prev;
   }
+  head->next = head->prev;
+  head->prev = NULL;
+  return head;
 }
+
+
+
 int main(int argc, char **argv){
 
   struct listnode A, B, C, D, E;
@@ -81,12 +84,8 @@ int main(int argc, char **argv){
   D.prev = &C;
   E.prev = &D;
 
-
   printList(&A);
-  printf("3rd element is %d\n", findNthElement(&A, 0)->value);
-  removeNthElement(&A, 3);
-  printf("item removed\n");
-  printList(&A);
-  printf("0nd to last element is %d\n", findNthToLastElement(&A, 4)->value);
+  printf("rewind:\n");
+  printList(reverse(&A));
 
 }
