@@ -119,6 +119,17 @@ void magic_numbers() {
   }
 }
 
+void sample(){
+
+  for(int i = 0; i < 100; i++){
+    printf("   new %d\n",i);
+    yield();
+  }
+  printf("and now for something completely different\n");
+  spawn(letters);
+  done();
+}
+
 /*******************************************************************************
                                      main()
 
@@ -129,5 +140,10 @@ void magic_numbers() {
 int main(){
   puts("\n==== Test program for the Simple Threads API ====\n");
 
+  spawn(magic_numbers);
+  spawn(numbers);
+//  spawn(sample);
+  spawn(letters); //insert functions into schedule
   init(); // Initialization
+
 }

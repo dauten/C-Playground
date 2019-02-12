@@ -22,21 +22,21 @@
 
 /* Two contexts. */
 ucontext_t foo_ctx, yee_ctx, bar_ctx, scheduler;
-ucontext_t *threads[3];
-int thread_num;
+static ucontext_t *current;
+ucontext_t threads[30];
+static int thread_num;
 
-
-int yieldcontext(ucontext_t active){
-  printf("yeilded to scheduler\n");
-  return swapcontext(&active, &scheduler);
+int end(){
+  return swapcontext(current, &scheduler);
 }
+
 /* Function executed by the foo context. */
 void foo() {
   for (int i = 0; i < N; i++) {
     printf("foo (%d)\n", i);
 
     /* Hand over control to the bar context */
-    if (swapcontext(&foo_ctx, &scheduler) < 0) {
+    if (end() < 0) {
       perror("swapcontext");
       exit(EXIT_FAILURE);
     }
@@ -50,7 +50,7 @@ void yee() {
     printf("yee (%d)\n", i);
 
     /* Hand over control to the bar context */
-    if (swapcontext(&yee_ctx, &scheduler) < 0) {
+    if (end() < 0) {
       perror("swapcontext");
       exit(EXIT_FAILURE);
     }
@@ -64,7 +64,7 @@ void bar() {
     printf("bar (%d)\n", i);
 
     /* Hand over control to the foo context */
-    if (swapcontext(&bar_ctx, &scheduler) < 0) {
+    if (end() < 0) {
       perror("swapcontext");
       exit(EXIT_FAILURE);
     }
@@ -132,31 +132,32 @@ void link_context(ucontext_t *a, ucontext_t *b) {
 void round_robin(){
   while(1){
     for(int i = 0 ; i < thread_num; i++){
-      swapcontext(&scheduler, threads[i]);
-
-      //swapcontext(&scheduler, &bar_ctx);
-      //swapcontext(&scheduler, &foo_ctx);
+      printf("cont i is %d\n", i);
+      current = &threads[i];
+      printf("cont again\n");
+      if(swapcontext(&scheduler, &threads[i]) < 0 ){
+      //  printf("not swapped\n");
+      }
     }
   }
 }
 
 int main() {
-  ucontext_t foo_done_ctx;
+  //ucontext_t foo_done_ctx;
 
   /* Flush each printf() as it happens. */
   setvbuf(stdout, 0, _IOLBF, 0);
 
   thread_num = 3;
   /* Initialize contexts(). */
-  init_context1(&foo_done_ctx, foo_done, "done", NULL);
-  init_context0(&foo_ctx, foo, &foo_done_ctx);
-  init_context0(&bar_ctx, bar, NULL);
-  init_context0(&yee_ctx, yee, NULL);
+//  init_context1(&foo_done_ctx, foo_done, "done", NULL);
+  init_context0(&threads[0], foo, NULL);
+  printf("thread 0 inited\n");
+  init_context0(&threads[1], bar, NULL);
+  init_context0(&threads[2], yee, NULL);
   init_context0(&scheduler, round_robin, NULL);
 
-  threads[0] = &foo_ctx;
-  threads[1] = &bar_ctx;
-  threads[2] = &yee_ctx;
+  thread_num = 3;
 
   /* Transfers control to the foo context. */
   setcontext(&scheduler);
