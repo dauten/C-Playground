@@ -3,10 +3,10 @@
 #include <stdio.h>    // printf(), fprintf(), stdout, stderr, perror(), _IOLBF
 #include <string.h>   // memset()
 #include <sys/time.h> // ITIMER_REAL, ITIMER_VIRTUAL, ITIMER_PROF, struct itimerval, setitimer()
-#include <stdbool.h>  // true, false 
+#include <stdbool.h>  // true, false
 #include <limits.h>   // INT_MAX
 
-#define TIMEOUT    50          // ms 
+#define TIMEOUT    50          // ms
 #define TIMER_TYPE ITIMER_REAL // Type of timer.
 
 static volatile int foo;
@@ -52,7 +52,7 @@ int timer_signal(int timer_type) {
 
    handler: timer signal handler.
 
-   ms: time in ms for the timer. 
+   ms: time in ms for the timer.
 
  */
 void set_timer(int type, void (*handler) (int), int ms) {
@@ -113,7 +113,7 @@ void fibonacci_slow() {
 
 /* Print the Fibonacci number sequence over and over again.
 
-   This implementation is much faster than fibonacci(). 
+   This implementation is much faster than fibonacci().
 */
 void fibonacci_fast() {
   int a = 0;

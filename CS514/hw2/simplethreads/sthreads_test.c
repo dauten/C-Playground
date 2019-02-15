@@ -85,7 +85,7 @@ void fibonacci_fast() {
   int next = a + b;
 
   while(true) {
-    printf(" fib(%02d) = %d\n", n, a);
+    printf(" fib(%02d) =%d\n", n, a);
     next = a + b;
     a = b;
     b = next;
@@ -121,12 +121,13 @@ void magic_numbers() {
 
 void sample(){
 
-  for(int i = 0; i < 100; i++){
-    printf("   new %d\n",i);
+  for(int i = 0; i < 10; i++){
+    printf("new %d\n",i);
     yield();
   }
-  printf("and now for something completely different\n");
+  printf("and now something different\n");
   spawn(letters);
+  spawn(numbers);
   done();
 }
 
@@ -140,10 +141,12 @@ void sample(){
 int main(){
   puts("\n==== Test program for the Simple Threads API ====\n");
 
-  spawn(magic_numbers);
-  spawn(numbers);
+//  spawn(magic_numbers);
+//  spawn(numbers);
 //  spawn(sample);
-  spawn(letters); //insert functions into schedule
+//  spawn(letters); //insert functions into schedule
+  spawn(fibonacci_slow);
+  spawn(fibonacci_fast);
   init(); // Initialization
 
 }
