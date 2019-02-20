@@ -132,12 +132,12 @@ int main(){
   puts("\n==== Test program for the Simple Threads API ====\n");
 
 
-  spawn(magic_numbers);
+//  spawn(magic_numbers);
 //  spawn(numbers);
 //  spawn(letters); //insert functions into schedule
   spawn(fibonacci_slow);
-  spawn(magic_numbers);
-//  spawn(fibonacci_fast);
+//  spawn(magic_numbers);
+  spawn(fibonacci_fast);
   init(); // Initialization
 
 }
