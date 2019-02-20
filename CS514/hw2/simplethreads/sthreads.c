@@ -23,7 +23,7 @@
 /* Stack size for each context. */
 #define STACK_SIZE SIGSTKSZ*100
 #define THREAD_LIMIT 10 //total number of lifetime threads that can exit
-#define TIMEOUT    5          // ms
+#define TIMEOUT    10          // ms
 #define TIMER_TYPE ITIMER_REAL // Type of timer.
 /*******************************************************************************
                              Global data structures
@@ -35,8 +35,8 @@ ucontext_t scheduler;
 ucontext_t *current;
 static ucontext_t threads[THREAD_LIMIT];
 static int num_of_threads = 0;
-int i;
-
+static int i;
+static int yielded = 0;
 
 
 /*******************************************************************************
@@ -117,11 +117,15 @@ void timer_handler (int signum) {
 }
 
 void preempt(){
-  set_timer(TIMER_TYPE, timer_handler, TIMEOUT);
-  i++;
-  if(i == num_of_threads) i = 0;
-  current = &threads[i];
-  swapcontext(&scheduler, &threads[i]);
+  if(yielded == 0)
+  {
+    set_timer(TIMER_TYPE, timer_handler, TIMEOUT);
+    i++;
+    if(i == num_of_threads) i = 0;
+    current = &threads[i];
+    swapcontext(&scheduler, &threads[i]);
+  }
+  yielded = 0;
 }
 
 
@@ -191,7 +195,9 @@ void init_context1(ucontext_t *ctx, void (*func)(), const char *str, ucontext_t 
                     Implementation of the Simple Threads API
 ********************************************************************************/
 
-
+/*
+* Start schedular and timers
+*/
 int init(){
   setvbuf(stdout, 0, _IOLBF, 0);
   init_context0(&scheduler, round_robin, NULL);
@@ -200,17 +206,27 @@ int init(){
   return -1; //error, should not return
 }
 
-
+/*
+* Create new thread, adding it to schedular
+*/
 tid_t spawn(void (*start)()){
   init_context0(&threads[num_of_threads], start, NULL);
   num_of_threads++;
   return 1; //true
 }
 
+/*
+* Set new timer and swap back to schedular
+*/
 void yield(){
+  set_timer(TIMER_TYPE, timer_handler, TIMEOUT);
+  yielded = 1;
   swapcontext(current, &scheduler);
 }
 
+/*
+* Make this thread just yield forever
+*/
 void done(){
   while(true){
     yield(); //messy and poor form but it works for now, OK?

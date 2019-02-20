@@ -113,23 +113,13 @@ void magic_numbers() {
       n = (n+1) % INT_MAX;
     } else {
       // Start over when m overflows.
+      printf(" magic overflow\n");
       n = 3;
     }
     yield();
   }
 }
 
-void sample(){
-
-  for(int i = 0; i < 10; i++){
-    printf("new %d\n",i);
-    yield();
-  }
-  printf("and now something different\n");
-  spawn(letters);
-  spawn(numbers);
-  done();
-}
 
 /*******************************************************************************
                                      main()
@@ -141,12 +131,13 @@ void sample(){
 int main(){
   puts("\n==== Test program for the Simple Threads API ====\n");
 
-//  spawn(magic_numbers);
+
+  spawn(magic_numbers);
 //  spawn(numbers);
-//  spawn(sample);
 //  spawn(letters); //insert functions into schedule
   spawn(fibonacci_slow);
-  spawn(fibonacci_fast);
+  spawn(magic_numbers);
+//  spawn(fibonacci_fast);
   init(); // Initialization
 
 }
