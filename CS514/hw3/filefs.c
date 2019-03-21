@@ -19,7 +19,7 @@ void exitusage(char* pname);
 
 
 int main(int argc, char** argv){
-  
+
   int opt;
   int create = 0;
   int list = 0;
@@ -33,9 +33,9 @@ int main(int argc, char** argv){
   int fd = -1;
   int newfs = 0;
   int filefsname = 0;
- 
 
-  
+
+
   while ((opt = getopt(argc, argv, "la:r:e:f:")) != -1) {
     switch (opt) {
     case 'l':
@@ -57,8 +57,8 @@ int main(int argc, char** argv){
       exitusage(argv[0]);
     }
   }
-  
-  
+
+
   if (!filefsname){
     exitusage(argv[0]);
   }
@@ -71,29 +71,32 @@ int main(int argc, char** argv){
     if (zerosize(fd)){
       newfs = 1;
     }
-    
+
     if (newfs)
       if (lseek(fd, FSSIZE-1, SEEK_SET) == -1){
-	perror("seek failed");
-	exit(EXIT_FAILURE);
+      	perror("seek failed");
+      	exit(EXIT_FAILURE);
       }
       else{
-	if(write(fd, "\0", 1) == -1){
-	  perror("write failed");
-	  exit(EXIT_FAILURE);
-	}
+        if(write(fd, "\0", 1) == -1){
+          perror("write failed");
+          exit(EXIT_FAILURE);
+        }
+        else{
+          init(fd);
+        }
       }
   }
-  
+
 
   mapfs(fd);
-  
+
   if (newfs){
     formatfs();
   }
 
   loadfs();
-  
+
   if (add){
     addfilefs(toadd);
   }
@@ -111,7 +114,7 @@ int main(int argc, char** argv){
   }
 
   unmapfs();
-  
+
   return 0;
 }
 
