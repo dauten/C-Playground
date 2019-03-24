@@ -33,13 +33,14 @@ int main(int argc, char** argv){
   int fd = -1;
   int newfs = 0;
   int filefsname = 0;
+  int debug = 0;
 
 
-
-  while ((opt = getopt(argc, argv, "la:r:e:f:")) != -1) {
+  while ((opt = getopt(argc, argv, "la:r:e:f:d:")) != -1) {
     switch (opt) {
     case 'l':
       list = 1;
+      debug = 1;
       break;
     case 'a':
       add = 1;
@@ -52,6 +53,9 @@ int main(int argc, char** argv){
     case 'f':
       filefsname = 1;
       fsname = strdup(optarg);
+      break;
+    case 'd':
+      debug = 1;
       break;
     default:
       exitusage(argv[0]);
@@ -82,9 +86,7 @@ int main(int argc, char** argv){
           perror("write failed");
           exit(EXIT_FAILURE);
         }
-        else{
-          init(fd);
-        }
+
       }
   }
 
@@ -92,7 +94,7 @@ int main(int argc, char** argv){
   mapfs(fd);
 
   if (newfs){
-    formatfs();
+    formatfs(fd);
   }
 
   loadfs();
@@ -111,6 +113,10 @@ int main(int argc, char** argv){
 
   if(list){
     lsfs();
+  }
+
+  if(debug){
+    meta(fd);
   }
 
   unmapfs();
