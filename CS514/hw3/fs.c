@@ -43,6 +43,13 @@ void mapfs(int fd){
   }
 }
 
+//print binary data file to stdout
+void out(void * file, int length){
+  int j;
+  for(j = 0; j < length; ++j)
+    printf("%02x\n", ((u_int8_t*) file)[j]);
+}
+
 
 // read from file described by fd, starting at start and going to end.  returns it as a bit string
 void * readRange(int fd, int start, int end){
@@ -59,6 +66,18 @@ void * readRange(int fd, int start, int end){
   return data;
 }
 
+//given arbitrary data write that to start and end locations
+void writeRange(int fd, void * data, int start, int end){
+  if (lseek(fd, start, SEEK_SET) == -1){
+    perror("seek failed");
+    exit(EXIT_FAILURE);
+  }
+  else{
+    write(fd, data, end-start);
+    printf("wrote superblock\n");
+  }
+}
+
 
 void unmapfs(){
   munmap(fs, FSSIZE);
@@ -73,28 +92,17 @@ void formatfs(int fd){
   M->numOfInodes = 50;
   M->sizeOfInodes = 100;
 
-
-  if (lseek(fd, 0, SEEK_SET) == -1){
-    perror("seek failed");
-    exit(EXIT_FAILURE);
-  }
-  else{
-    write(fd, M, sizeof(struct superblock));
-    printf("wrote superblock\n");
-  }
+  writeRange(fd, M, 0, 12);
 }
 
 void meta(int fd){
   printf("printing FS\n");
   //installs superblock and bitmap in FS
   struct superblock *N=malloc(sizeof(struct superblock));
-  int end = 16;
-
-
-
-  N = readRange(fd, 4, end+4);
+  printf("struct is %d\n",sizeof(struct superblock));
+  N = readRange(fd, 0, sizeof(struct superblock));
   printf("blocks:%d\ninodes:%d\nsize:%d\n", N->numOfBlocks, N->numOfInodes, N->sizeOfInodes);
-
+  out(readRange(fd, 0, sizeof(struct superblock)), sizeof(struct superblock));
 }
 
 
