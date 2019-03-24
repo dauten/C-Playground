@@ -54,8 +54,9 @@ int main(int argc, char** argv){
       filefsname = 1;
       fsname = strdup(optarg);
       break;
-    case 'd':
-      debug = 1;
+    case 'e':
+      extract = 1;
+      toextract = strdup(optarg);
       break;
     default:
       exitusage(argv[0]);
@@ -100,7 +101,7 @@ int main(int argc, char** argv){
   loadfs();
 
   if (add){
-    addfilefs(toadd);
+    addfilefs(toadd, fd);
   }
 
   if (remove){
@@ -108,7 +109,7 @@ int main(int argc, char** argv){
   }
 
   if (extract){
-    extractfilefs(toextract);
+    extractfilefs(toextract, fd);
   }
 
   if(list){

@@ -14,8 +14,9 @@ void unmapfs();
 void formatfs();
 void loadfs();
 void lsfs();
-void addfilefs(char* fname);
+void addfilefs(char* fname, int fd);
 void removefilefs(char* fname);
-void extractfilefs(char* fname);
+void extractfilefs(char* fname, int fd);
+void meta(int fd);
 
 #endif

@@ -54,7 +54,6 @@ void out(void * file, int length){
 // read from file described by fd, starting at start and going to end.  returns it as a bit string
 void * readRange(int fd, int start, int end){
   void * data = malloc(end-start);
-  printf("size is %d\n", sizeof(data));
   if (lseek(fd, start, SEEK_SET) == -1){
     perror("seek failed");
     exit(EXIT_FAILURE);
@@ -74,7 +73,6 @@ void writeRange(int fd, void * data, int start, int end){
   }
   else{
     write(fd, data, end-start);
-    printf("wrote superblock\n");
   }
 }
 
@@ -96,13 +94,10 @@ void formatfs(int fd){
 }
 
 void meta(int fd){
-  printf("printing FS\n");
   //installs superblock and bitmap in FS
   struct superblock *N=malloc(sizeof(struct superblock));
-  printf("struct is %d\n",sizeof(struct superblock));
   N = readRange(fd, 0, sizeof(struct superblock));
-  printf("blocks:%d\ninodes:%d\nsize:%d\n", N->numOfBlocks, N->numOfInodes, N->sizeOfInodes);
-  out(readRange(fd, 0, sizeof(struct superblock)), sizeof(struct superblock));
+
 }
 
 
@@ -124,8 +119,17 @@ void lsfs(){
 
 }
 
-void addfilefs(char* fname){
-
+void addfilefs(char* fname, int fd){
+  int in;
+  if ((in = open(fname, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR)) == -1){
+    perror("open failed");
+    exit(EXIT_FAILURE);
+  }
+  else{
+    void * d;
+    d = readRange(in, 0, 378);
+    writeRange(fd, d, 100, 478);
+  }
 }
 
 
@@ -134,6 +138,16 @@ void removefilefs(char* fname){
 }
 
 
-void extractfilefs(char* fname){
-
+void extractfilefs(char* fname, int fd){
+    int in;
+    void * d;
+    d = readRange(fd, 100, 478);
+    out(d, 378);
+    if ((in = open(fname, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR)) == -1){
+      perror("open failed");
+      exit(EXIT_FAILURE);
+    }
+    else{
+      write(in, d, 378);
+    }
 }
