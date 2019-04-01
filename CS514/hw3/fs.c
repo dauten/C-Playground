@@ -27,7 +27,7 @@ Find File(array path of format [A, B, C] to mean /A/B/C ):
 struct block{
   long numb;
   long size;
-  void * content;
+  int content[496];
 };
 
 struct inode{
@@ -177,13 +177,17 @@ int freeBlockSearch(void * FBL){
     //if a given byte is 0xFF then its all ones, skip to next byte
     if( 0xFF == ((u_int8_t*) FBL)[j]);
     else{
+      int backup = j;
       //else it has at least one 0
       j = ((u_int8_t*) FBL)[j];
+
       //while the first byte is one, we count how many left shits it takes to find 0
-      while( (j & 0x80 ) == 0 ){
+      while( (j & 0x80 ) != 0 ){
         r++;
         j <<= 1;
       }
+      ((int *)FBL)[backup] |= 0x80>>(r%8);
+
       //return number of bits from left
       return r;
     }
@@ -283,17 +287,22 @@ void addfilefs(char* fname, int fd){
         else{
           s = 496;
         }
-        d = readRange(in, (i*496), r + (i)*496);  //read next block of 496 bytes
+        printf("reading %d bytes\n", (s + (i)*496)-(i*496));
+        d = readRange(in, (i*496), s + (i)*496);  //read next block of 496 bytes
         struct block * B = malloc(sizeof(struct block));
-        B->content = d;
+
+        for(int b = 0; b < s; b++){
+          B->content[b] = ((int *)d)[b];
+        }
         B->size = r;
         B->numb = freeBlockSearch(FBL); //FBL needs to be instantiated first tho
 
         I->content[i] = B->numb;
-
+        printf("size is %d\n", B->size);
         int start = blockAddress(B->numb, fd);
-
-        writeRange(fd, B ,start, start+512);
+        out(B, 512);
+        printf("writing from %d to %d\n", start, start+512);
+        writeRange(fd, B, start, start+512);
       }
       //write the inode and update parents
       addInode(I, paths);
