@@ -67,12 +67,12 @@ void mapfs(int fd){
 void out(void * file, int length){
   int j;
   for(j = 0; j < length; ++j)
-    printf("%02x\n", ((u_int8_t*) file)[j]);
+    printf("%02x", ((u_int8_t*) file)[j]);
 }
 
 //read an inode, printing content
 void checkInode(struct inode * I){
-  printf("type of %d, size of %d, in use?  %d.  name of %s\n", I->type, I->size, I->inuse, I->name);
+
   for(int i = 0; i < I->size; i++){
     printf("%d\n", I->content[i]);
   }
@@ -160,10 +160,7 @@ void loadfs(){
 
 }
 
-//given the inode for a file, reconstruct file and out() it
-void readFile(struct inode F){
 
-}
 
 //given the free block list return the integer correspondng to the first free block
 //and update FBL so that bit is no longer 0
@@ -202,7 +199,9 @@ int freeBlockSearch(void * FBL){
 int blockAddress(short int block, int fd){
   struct superblock *N=malloc(sizeof(struct superblock));
   N = readRange(fd, 0, sizeof(struct superblock));
-  int start = sizeof(struct superblock) + N->numOfBlocks/8; //beginning of first block
+  int start = sizeof(struct superblock) + N->numOfBlocks/8; //beginning of inodes
+  start += N->numOfInodes * N->sizeOfInodes;
+
 
   return start + block*512;
 
@@ -214,6 +213,34 @@ void makeDir(int fd, char * path){
 
 }
 
+
+//given the inode for a file, reconstruct file and out() it
+void readFile(struct inode * F, int fd){
+  int in;
+  if ((in = open("sample.out", O_CREAT | O_RDWR, S_IRUSR | S_IWUSR)) == -1){
+    perror("open failed");
+    exit(EXIT_FAILURE);
+  }
+  else{
+
+  }
+
+  for(int i = 0; i < F->size; i++){
+
+    int addr = blockAddress(F->content[i], fd);
+    struct block * B = malloc(sizeof(struct block));
+    B = readRange(fd, addr, addr+512);
+
+    void * data = readRange(fd, addr+16, addr+B->size);
+    out(B->content, B->size);
+
+    write(in, B->content, B->size);
+
+
+
+
+  }
+}
 void lsfs(){
 
 }
@@ -222,14 +249,19 @@ void lsfs(){
 //files and directories (ie '/root/home/dale/sample.txt' becomes
 //['root', 'home', 'dale', 'sample.txt'])
 //returns number of components, 4 in above case
-int pathNameConvert(char * file, char * path[]){
-
+int pathNameConvert(char * file, char * path[], int length){
+  path[length-1] = "temp.h";
   return -1;
 }
 
 int pathLength(char * file){
-
-  return -1;
+  int len = strlen(file);
+  int count = 1;
+  for(int i = 0; i < len; i++){
+    if(file[i] == '/')
+      count++;
+  }
+  return count;
 }
 
 void * readFBL(int fd){
@@ -243,11 +275,29 @@ void * readFBL(int fd){
 }
 
 void updateFBL(void * FBL, int fd){
+  struct superblock *N=malloc(sizeof(struct superblock));
+  N = readRange(fd, 0, sizeof(struct superblock));
+  int temp = N->numOfBlocks/8;
 
+  writeRange(fd, FBL, sizeof(struct superblock), sizeof(struct superblock)+temp);
 }
 
-void addInode(struct inode * I, char * path[]){
+void addInode(struct inode * I, char * path[], int fd){
+  struct superblock *N=malloc(sizeof(struct superblock));
+  N = readRange(fd, 0, sizeof(struct superblock));
+  int i_zero = sizeof(struct superblock) + N->numOfBlocks/8; // first/0th inode
 
+  //search for first unfilled inode and put this there.
+  struct inode * temp = malloc(sizeof(struct inode));
+  do{
+    temp = readRange(fd, i_zero, i_zero+sizeof(struct inode));
+
+    if(temp->inuse == 0){
+      writeRange(fd, I, i_zero, i_zero+sizeof(struct inode));
+      return;
+    }
+  }
+  while(temp->inuse == 0);
 }
 
 void addfilefs(char* fname, int fd){
@@ -270,12 +320,20 @@ void addfilefs(char* fname, int fd){
     else{
       int pNum = pathLength(fname);
       char * paths[pNum];
-      pathNameConvert(fname, paths);
+      //pathNameConvert(fname, paths, pNum);
       struct inode * I = malloc(sizeof(struct inode));
       I->size = (size/496)+1; //this may be an issue when size%496==0
-      for(int i = 0; i < pNum; i++){
-        I->name[i] = paths[pNum-1][i];
+      //for(int i = 0; i < strlen(paths[pNum-1]); i++){
+      //  I->name[i] = paths[pNum-1][i];
+      //  printf("%s", I->name[i]);
+      //}
+
+
+      for(int s = 0; s < strlen(fname); s++){
+        I->name[s] = fname[s];
       }
+
+      I->inuse = 1;
 
       int r = size%496;
       int s;
@@ -287,25 +345,22 @@ void addfilefs(char* fname, int fd){
         else{
           s = 496;
         }
-        printf("reading %d bytes\n", (s + (i)*496)-(i*496));
         d = readRange(in, (i*496), s + (i)*496);  //read next block of 496 bytes
         struct block * B = malloc(sizeof(struct block));
 
         for(int b = 0; b < s; b++){
           B->content[b] = ((int *)d)[b];
         }
-        B->size = r;
+        B->size = s;
         B->numb = freeBlockSearch(FBL); //FBL needs to be instantiated first tho
 
         I->content[i] = B->numb;
-        printf("size is %d\n", B->size);
         int start = blockAddress(B->numb, fd);
-        out(B, 512);
-        printf("writing from %d to %d\n", start, start+512);
-        writeRange(fd, B, start, start+512);
+
+          writeRange(fd, B, start, start+512);
       }
       //write the inode and update parents
-      addInode(I, paths);
+      addInode(I, paths, fd);
 
       //write the updated FBL
       updateFBL(FBL, fd);
@@ -321,15 +376,18 @@ void removefilefs(char* fname){
 
 
 void extractfilefs(char* fname, int fd){
-    int in;
-    void * d;
-    d = readRange(fd, 100, 612);
-    out(d, 512);
-    if ((in = open(fname, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR)) == -1){
-      perror("open failed");
-      exit(EXIT_FAILURE);
-    }
-    else{
-      write(in, d, 512);
-    }
+  struct inode * I;
+
+  struct superblock *N=malloc(sizeof(struct superblock));
+  N = readRange(fd, 0, sizeof(struct superblock));
+  int i_zero = sizeof(struct superblock) + N->numOfBlocks/8; // first/0th inode
+  //search for first unfilled inode and put this there.
+  struct inode * temp = malloc(sizeof(struct inode));
+  I = readRange(fd, i_zero, i_zero+sizeof(struct inode));
+
+  int in;
+
+
+
+  readFile(I, fd);
 }
