@@ -168,15 +168,40 @@ void readFile(struct inode F){
 //given the free block list return the integer correspondng to the first free block
 //and update FBL so that bit is no longer 0
 int freeBlockSearch(void * FBL){
+  int j;
+  int r = 0;
+  int length = 1250;
 
+  //iterate through the FBL searching fot the first 0 bit.
+  for(j = 0; j < length; ++j){
+    //if a given byte is 0xFF then its all ones, skip to next byte
+    if( 0xFF == ((u_int8_t*) FBL)[j]);
+    else{
+      //else it has at least one 0
+      j = ((u_int8_t*) FBL)[j];
+      //while the first byte is one, we count how many left shits it takes to find 0
+      while( (j & 0x80 ) == 0 ){
+        r++;
+        j <<= 1;
+      }
+      //return number of bits from left
+      return r;
+    }
+    //in for loop if a byte has no 0's we count up eight, that entire byte
+    r += 8;
+  }
+  //failed state
   return -1;
 }
 
 //return int address of given block
 int blockAddress(short int block, int fd){
+  struct superblock *N=malloc(sizeof(struct superblock));
+  N = readRange(fd, 0, sizeof(struct superblock));
+  int start = sizeof(struct superblock) + N->numOfBlocks/8; //beginning of first block
 
+  return start + block*512;
 
-  return -1;
 }
 
 //creates in fd an empty directory with given path
@@ -203,6 +228,24 @@ int pathLength(char * file){
   return -1;
 }
 
+void * readFBL(int fd){
+  struct superblock *N=malloc(sizeof(struct superblock));
+  N = readRange(fd, 0, sizeof(struct superblock));
+  int temp = N->numOfBlocks/8;
+  void * FBL = malloc(temp);
+  FBL = readRange(fd, sizeof(struct superblock), sizeof(struct superblock)+temp);
+
+  return FBL;
+}
+
+void updateFBL(void * FBL, int fd){
+
+}
+
+void addInode(struct inode * I, char * path[]){
+
+}
+
 void addfilefs(char* fname, int fd){
   int in;
   if ((in = open(fname, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR)) == -1){
@@ -214,7 +257,7 @@ void addfilefs(char* fname, int fd){
     fstat(in, &st);
     long size = st.st_size;
     void * d;
-    void * FBL;
+    void * FBL = readFBL(fd);
 
     if(size > 49600){
       printf("oops the indirect block pointer hasn't been implemented and that file looks like its too big!\n");
@@ -230,13 +273,33 @@ void addfilefs(char* fname, int fd){
         I->name[i] = paths[pNum-1][i];
       }
 
-      for(int i = 0; i < (size/496); i++){
-        d = readRange(in, (i*496), (i+1)*496);  //read next block of 496 bytes
+      int r = size%496;
+      int s;
+
+      for(int i = 0; i < 1+(size/496); i++){
+        if(i == (size/496)){
+          s = r;
+        }
+        else{
+          s = 496;
+        }
+        d = readRange(in, (i*496), r + (i)*496);  //read next block of 496 bytes
         struct block * B = malloc(sizeof(struct block));
         B->content = d;
-        B->size = 496;
-        B->numb = freeBlockSearch(FBL);
+        B->size = r;
+        B->numb = freeBlockSearch(FBL); //FBL needs to be instantiated first tho
+
+        I->content[i] = B->numb;
+
+        int start = blockAddress(B->numb, fd);
+
+        writeRange(fd, B ,start, start+512);
       }
+      //write the inode and update parents
+      addInode(I, paths);
+
+      //write the updated FBL
+      updateFBL(FBL, fd);
 
     }
   }
