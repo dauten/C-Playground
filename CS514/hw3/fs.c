@@ -299,6 +299,7 @@ void addInode(struct inode * I, char * path[], int fd){
 
   do{
     temp = readRange(fd, i_zero, i_zero+sizeof(struct inode));
+    I->numb++;
     if(temp->inuse == 0){
       writeRange(fd, I, i_zero, i_zero+sizeof(struct inode));
       return;
@@ -342,7 +343,7 @@ void addfilefs(char* fname, int fd){
       for(int s = 0; s < strlen(fname); s++){
         I->name[s] = fname[s];
       }
-
+      I->numb = 0;
       I->inuse = 1;
 
       int r = size%496;
@@ -380,22 +381,61 @@ void addfilefs(char* fname, int fd){
 }
 
 //marks blocks of numbers in blocks as free
-void freeBlocks(void * FBL, short int blocks[]){
+void freeBlock(void * FBL, short int blocks){
 
 }
 
 //clears content and marks as not in use
-void deleteInode(struct inode * I){
+void deleteInode(struct inode * F, int fd){
 
+  void * FBL = readFBL(fd);
+  F->inuse = 0;
+  for(int i = 0; i < F->size; i++){
+
+    short int addr = blockAddress(F->content[i], fd);
+    F->content[i] = 0;
+    freeBlock(FBL, addr);
+  }
+
+  struct superblock *N=malloc(sizeof(struct superblock));
+  N = readRange(fd, 0, sizeof(struct superblock));
+  int i_zero = sizeof(struct superblock) + N->numOfBlocks/8; // first/0th inode
+
+  i_zero = i_zero + F->numb * sizeof(struct inode);
+
+  writeRange(fd, F, i_zero, i_zero+sizeof(struct inode));
+  updateFBL(FBL, fd);
 }
 
 //given an array of directory names ending in filename, searches for that file's inode
-struct inode getInode(char * path[]){
+struct inode * getInode(char * path[], int fd, int len){
+  struct inode * I;
 
+  char * fname = path[len-1];
+
+  struct superblock *N=malloc(sizeof(struct superblock));
+  N = readRange(fd, 0, sizeof(struct superblock));
+  int i_zero = sizeof(struct superblock) + N->numOfBlocks/8; // first/0th inode
+  //search for first unfilled inode and put this there.
+  int i = -1;
+  struct inode * temp = malloc(sizeof(struct inode));
+  do{
+
+    I = readRange(fd, i_zero, i_zero+sizeof(struct inode));
+    i_zero+=sizeof(struct inode);
+    i++;
+  }
+  while(strcmp(fname, I->name) != 0);
+
+  return I;
 }
 
-void removefilefs(char* fname){
+void removefilefs(char* fname, int fd){
 
+  int pNum = pathLength(fname);
+  char * paths[pNum];
+  pathNameConvert(fname, paths, pNum);
+  deleteInode(getInode(paths, fd, pNum), fd);
 }
 
 
@@ -413,7 +453,6 @@ void extractfilefs(char* fname, int fd){
     i_zero+=sizeof(struct inode);
   }
   while(strcmp(fname, I->name) != 0);
-  int in;
 
   readFile(I, fd);
 }

@@ -107,7 +107,7 @@ int main(int argc, char** argv){
   }
 
   if (remove){
-    removefilefs(toremove);
+    removefilefs(toremove, fd);
   }
 
   if (extract){
