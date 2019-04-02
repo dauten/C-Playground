@@ -70,6 +70,13 @@ void out(void * file, int length){
     printf("%02x", ((u_int8_t*) file)[j]);
 }
 
+//print binary data file to stdout
+void dump(void * file, int length){
+  int j;
+  for(j = 0; j < length; ++j)
+    printf("%c", ((char*) file)[j]);
+}
+
 //read an inode, printing content
 void checkInode(struct inode * I){
 
@@ -172,17 +179,18 @@ int freeBlockSearch(void * FBL){
   //iterate through the FBL searching fot the first 0 bit.
   for(j = 0; j < length; ++j){
     //if a given byte is 0xFF then its all ones, skip to next byte
-    if( 0xFF == ((u_int8_t*) FBL)[j]);
+    if( 0xFF == ((int*) FBL)[j]);
     else{
       int backup = j;
       //else it has at least one 0
-      j = ((u_int8_t*) FBL)[j];
+      j = ((int*) FBL)[j];
 
       //while the first byte is one, we count how many left shits it takes to find 0
       while( (j & 0x80 ) != 0 ){
         r++;
         j <<= 1;
       }
+
       ((int *)FBL)[backup] |= 0x80>>(r%8);
 
       //return number of bits from left
@@ -228,16 +236,13 @@ void readFile(struct inode * F, int fd){
   for(int i = 0; i < F->size; i++){
 
     int addr = blockAddress(F->content[i], fd);
+
     struct block * B = malloc(sizeof(struct block));
     B = readRange(fd, addr, addr+512);
 
     void * data = readRange(fd, addr+16, addr+B->size);
-    out(B->content, B->size);
 
-    write(in, B->content, B->size);
-
-
-
+    dump(B->content, B->size);
 
   }
 }
@@ -289,15 +294,18 @@ void addInode(struct inode * I, char * path[], int fd){
 
   //search for first unfilled inode and put this there.
   struct inode * temp = malloc(sizeof(struct inode));
+
   do{
     temp = readRange(fd, i_zero, i_zero+sizeof(struct inode));
-
     if(temp->inuse == 0){
       writeRange(fd, I, i_zero, i_zero+sizeof(struct inode));
       return;
     }
+    i_zero += sizeof(struct inode);
   }
-  while(temp->inuse == 0);
+  while(temp->inuse == 1);
+
+  printf("Warning, no Inode was added\n");
 }
 
 void addfilefs(char* fname, int fd){
@@ -353,7 +361,7 @@ void addfilefs(char* fname, int fd){
         }
         B->size = s;
         B->numb = freeBlockSearch(FBL); //FBL needs to be instantiated first tho
-
+        printf("adding data to block %d\n", B->numb);
         I->content[i] = B->numb;
         int start = blockAddress(B->numb, fd);
 
@@ -383,11 +391,13 @@ void extractfilefs(char* fname, int fd){
   int i_zero = sizeof(struct superblock) + N->numOfBlocks/8; // first/0th inode
   //search for first unfilled inode and put this there.
   struct inode * temp = malloc(sizeof(struct inode));
-  I = readRange(fd, i_zero, i_zero+sizeof(struct inode));
+  do{
 
+    I = readRange(fd, i_zero, i_zero+sizeof(struct inode));
+    i_zero+=sizeof(struct inode);
+  }
+  while(strcmp(fname, I->name) != 0);
   int in;
-
-
 
   readFile(I, fd);
 }
