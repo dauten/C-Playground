@@ -224,14 +224,6 @@ void makeDir(int fd, char * path){
 
 //given the inode for a file, reconstruct file and out() it
 void readFile(struct inode * F, int fd){
-  int in;
-  if ((in = open("sample.out", O_CREAT | O_RDWR, S_IRUSR | S_IWUSR)) == -1){
-    perror("open failed");
-    exit(EXIT_FAILURE);
-  }
-  else{
-
-  }
 
   for(int i = 0; i < F->size; i++){
 
@@ -255,8 +247,18 @@ void lsfs(){
 //['root', 'home', 'dale', 'sample.txt'])
 //returns number of components, 4 in above case
 int pathNameConvert(char * file, char * path[], int length){
-  path[length-1] = "temp.h";
-  return -1;
+  int i = 0;
+  char * pch;
+
+  pch = strtok (file,"/");
+  while (pch != NULL)
+  {
+    path[i] = pch;
+    i++;
+    pch = strtok (NULL, "/");
+  }
+
+  return i-1;
 }
 
 int pathLength(char * file){
@@ -377,6 +379,20 @@ void addfilefs(char* fname, int fd){
   }
 }
 
+//marks blocks of numbers in blocks as free
+void freeBlocks(void * FBL, short int blocks[]){
+
+}
+
+//clears content and marks as not in use
+void deleteInode(struct inode * I){
+
+}
+
+//given an array of directory names ending in filename, searches for that file's inode
+struct inode getInode(char * path[]){
+
+}
 
 void removefilefs(char* fname){
 
