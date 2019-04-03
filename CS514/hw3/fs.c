@@ -343,7 +343,7 @@ void addfilefs(char* fname, int fd){
       for(int s = 0; s < strlen(fname); s++){
         I->name[s] = fname[s];
       }
-      I->numb = 0;
+      I->numb = -1;
       I->inuse = 1;
 
       int r = size%496;
@@ -382,7 +382,12 @@ void addfilefs(char* fname, int fd){
 
 //marks blocks of numbers in blocks as free
 void freeBlock(void * FBL, short int blocks){
-
+  int chunk = blocks / 8; //which byte # in FBL are we accessing?
+  short int target = 1;  //what specific with in chunk are we reseting?
+  for(int i = 7; i > (blocks % 8); i--)
+    target *= 2;
+  ((int *)FBL)[chunk] ^= target;
+  printf("%02x\n", target);
 }
 
 //clears content and marks as not in use
@@ -390,11 +395,11 @@ void deleteInode(struct inode * F, int fd){
 
   void * FBL = readFBL(fd);
   F->inuse = 0;
+  F->name[0] = 0;
   for(int i = 0; i < F->size; i++){
-
-    short int addr = blockAddress(F->content[i], fd);
+    freeBlock(FBL, F->content[i]);
     F->content[i] = 0;
-    freeBlock(FBL, addr);
+
   }
 
   struct superblock *N=malloc(sizeof(struct superblock));
@@ -420,12 +425,16 @@ struct inode * getInode(char * path[], int fd, int len){
   int i = -1;
   struct inode * temp = malloc(sizeof(struct inode));
   do{
-
     I = readRange(fd, i_zero, i_zero+sizeof(struct inode));
     i_zero+=sizeof(struct inode);
     i++;
   }
   while(strcmp(fname, I->name) != 0);
+
+  if(I->inuse == 0){
+    printf("That led to a not-in-use inode.  The file may have been deleted.\n");
+    exit(1);
+  }
 
   return I;
 }
@@ -433,26 +442,26 @@ struct inode * getInode(char * path[], int fd, int len){
 void removefilefs(char* fname, int fd){
 
   int pNum = pathLength(fname);
+  pNum = 1;
   char * paths[pNum];
-  pathNameConvert(fname, paths, pNum);
-  deleteInode(getInode(paths, fd, pNum), fd);
+
+
+  paths[0] = fname;
+  //pathNameConvert(fname, paths, pNum);
+  struct inode * I = getInode(paths, fd, pNum);
+  deleteInode(I, fd);
 }
 
 
 void extractfilefs(char* fname, int fd){
-  struct inode * I;
+  int pNum = pathLength(fname);
+  pNum = 1;
+  char * paths[pNum];
 
-  struct superblock *N=malloc(sizeof(struct superblock));
-  N = readRange(fd, 0, sizeof(struct superblock));
-  int i_zero = sizeof(struct superblock) + N->numOfBlocks/8; // first/0th inode
-  //search for first unfilled inode and put this there.
-  struct inode * temp = malloc(sizeof(struct inode));
-  do{
 
-    I = readRange(fd, i_zero, i_zero+sizeof(struct inode));
-    i_zero+=sizeof(struct inode);
-  }
-  while(strcmp(fname, I->name) != 0);
+  paths[0] = fname;
+  //pathNameConvert(fname, paths, pNum);
+  struct inode * I = getInode(paths, fd, pNum);
 
   readFile(I, fd);
 }
