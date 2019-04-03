@@ -127,31 +127,7 @@ void formatfs(int fd){
   writeRange(fd, M, 0, 12);
 }
 
-void meta(int fd){
 
-  printf("entering debugging\n");
-  //read and print superblock
-  struct superblock *N=malloc(sizeof(struct superblock));
-  N = readRange(fd, 0, sizeof(struct superblock));
-  printf("%d blocks,  %d inodes,  inodes are %d bytes\n", N->numOfBlocks, N->numOfInodes, N->sizeOfInodes);
-  //read and print free block list
-  int temp = N->numOfBlocks/8;
-  void * FBL = malloc(temp);
-  FBL = readRange(fd, sizeof(struct superblock), sizeof(struct superblock)+temp);
-  printf("FBL has length of %d bytes\nThe contents of those bytes are (with each bit corresponding to a block, 1=used 0=free):\n", temp);
-//  out(FBL, temp);
-  //read and print inodes
-  int f = sizeof(struct superblock)+temp;
-  int t = f + sizeof(struct inode);
-  printf("First inode goes from %d to %d\n", f, t);
-  t = f + (N->numOfInodes*N->sizeOfInodes);
-  f = t - N->sizeOfInodes;
-  printf("Last inode goes from %d to %d\n", f, t);
-  struct block *B = malloc(sizeof(struct block));
-  B = readRange(fd, t, t+512);
-  printf("first block has %d bytes in it.  content of first block in hex is:\n", B->size);
-  out(B->content, B->size);
-}
 
 
 void loadfs(){
@@ -331,7 +307,7 @@ void addfilefs(char* fname, int fd){
     else{
       int pNum = pathLength(fname);
       char * paths[pNum];
-      //pathNameConvert(fname, paths, pNum);
+      pathNameConvert(fname, paths, pNum);
       struct inode * I = malloc(sizeof(struct inode));
       I->size = (size/496)+1; //this may be an issue when size%496==0
       //for(int i = 0; i < strlen(paths[pNum-1]); i++){
@@ -345,6 +321,7 @@ void addfilefs(char* fname, int fd){
       }
       I->numb = -1;
       I->inuse = 1;
+      I->type = 1; //for file
 
       int r = size%496;
       int s;
@@ -442,12 +419,11 @@ struct inode * getInode(char * path[], int fd, int len){
 void removefilefs(char* fname, int fd){
 
   int pNum = pathLength(fname);
-  pNum = 1;
   char * paths[pNum];
 
 
   paths[0] = fname;
-  //pathNameConvert(fname, paths, pNum);
+  pathNameConvert(fname, paths, pNum);
   struct inode * I = getInode(paths, fd, pNum);
   deleteInode(I, fd);
 }
@@ -455,13 +431,36 @@ void removefilefs(char* fname, int fd){
 
 void extractfilefs(char* fname, int fd){
   int pNum = pathLength(fname);
-  pNum = 1;
   char * paths[pNum];
 
 
   paths[0] = fname;
-  //pathNameConvert(fname, paths, pNum);
+  pathNameConvert(fname, paths, pNum);
   struct inode * I = getInode(paths, fd, pNum);
 
   readFile(I, fd);
+}
+
+
+
+void meta(int fd){
+
+  struct inode * I;
+
+  struct superblock *N=malloc(sizeof(struct superblock));
+  N = readRange(fd, 0, sizeof(struct superblock));
+  int i_zero = sizeof(struct superblock) + N->numOfBlocks/8; // first/0th inode
+  //search for first unfilled inode and put this there.
+  int i = -1;
+  struct inode * temp = malloc(sizeof(struct inode));
+  do{
+    I = readRange(fd, i_zero, i_zero+sizeof(struct inode));
+    i_zero+=sizeof(struct inode);
+    i++;
+    //printf info about inodes
+    if(I->type)
+      printf("Inode %d has type %d, usage %d, and size %d\n", I->numb, I->type, I->inuse, I->size);
+  }
+  while(i_zero < blockAddress(0, fd));
+  printf("any remaining inodes have never been allocated and are empty.\n");
 }
