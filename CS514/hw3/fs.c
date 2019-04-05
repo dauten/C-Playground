@@ -202,7 +202,7 @@ int blockAddress(short int block, int fd){
 //creates in fd an empty directory with given path
 //"mkdir' was taken :(
 struct inode * makeDir(struct inode * parent, int fd, char name[]){
-  printf("making new dir %s in %s\n", name, parent->name);
+
   //find and allocate an inode directory with name names
   struct superblock *N=malloc(sizeof(struct superblock));
   N = readRange(fd, 0, sizeof(struct superblock));
@@ -484,7 +484,7 @@ void addfilefs(char* fname, int fd){
         I->name[s] = paths[pNum-2][s];
       }
 
-      printf("fname is %s\n", paths[pNum-2]);
+
 
 
       I->numb = -1;
@@ -509,7 +509,7 @@ void addfilefs(char* fname, int fd){
         }
         B->size = s;
         B->numb = freeBlockSearch(FBL); //FBL needs to be instantiated first tho
-        printf("adding data to block %d\n", B->numb);
+
         I->content[i] = B->numb;
         int start = blockAddress(B->numb, fd);
 
@@ -558,30 +558,36 @@ void deleteInode(struct inode * F, int fd){
 
 //given an array of directory names ending in filename, searches for that file's inode
 struct inode * getInode(char * path[], int fd, int len){
-  struct inode * I;
-
-  char * fname = path[len-1];
-  printf("fname is %s\n", fname);
 
   struct superblock *N=malloc(sizeof(struct superblock));
   N = readRange(fd, 0, sizeof(struct superblock));
   int i_zero = sizeof(struct superblock) + N->numOfBlocks/8; // first/0th inode
+
   //search for first unfilled inode and put this there.
-  int i = -1;
   struct inode * temp = malloc(sizeof(struct inode));
+  temp = readRange(fd, i_zero, i_zero+sizeof(struct inode));  //get root inode
+  struct inode * temp2 = malloc(sizeof(struct inode));
+
+  int curEl = 0;
+
   do{
-    I = readRange(fd, i_zero, i_zero+sizeof(struct inode));
-    i_zero+=sizeof(struct inode);
-    i++;
-  }
-  while(strcmp(fname, I->name) != 0);
+    //for every item in this directpry, check if that item is next part of path
+    for(int i = 0; i < temp->size; i++){
+      temp2 = getInodeByNumber(temp->content[i], fd);
+      if(strcmp(temp2->name, path[curEl]) == 0){
+        temp = temp2;
+        i = 99999;
 
-  if(I->inuse == 0){
-    printf("That led to a not-in-use inode.  The file may have been deleted.\n");
-    exit(1);
-  }
+      }
+    }
 
-  return I;
+    curEl++;
+
+    temp = temp2;
+  }
+  while(temp->type != 1); //while inode is a directory
+
+  return temp;
 }
 
 void removefilefs(char* fname, int fd){
@@ -601,8 +607,6 @@ void extractfilefs(char* fname, int fd){
   int pNum = pathLength(fname);
   char * paths[pNum];
 
-
-  paths[0] = fname;
   pathNameConvert(fname, paths, pNum);
   struct inode * I = getInode(paths, fd, pNum);
 
