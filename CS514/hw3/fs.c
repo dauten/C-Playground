@@ -270,11 +270,12 @@ struct inode * getInodeByNumber(short int numb, int fd){
     I = readRange(fd, i_zero, i_zero+sizeof(struct inode));
     i_zero+=sizeof(struct inode);
     i++;
+
   }
   while(I->numb != numb);
 
   if(I->inuse == 0){
-    printf("That led to a not-in-use inode.  The file may have been deleted.\n");
+    printf("This is so emberassing.  That led to an unused inode so that file may have been removed and the FS didn't get properly cleaned\n");
     exit(1);
   }
 
@@ -431,7 +432,7 @@ void addInode(struct inode * I, char * path[], int fd, int len){
       //update temp2->content and write
       temp2->content[temp2->size] = I->numb;
       temp2->size++;
-      printf("The file is added to parent %s\n", temp2->name);
+      printf("The file %s is added to parent %s\n", I->name, temp2->name);
       writeRange(fd, temp2, i_zero + sizeof(struct inode)*temp2->numb, i_zero + sizeof(struct inode)*(temp2->numb+1));
 
       return;
@@ -480,7 +481,7 @@ void addfilefs(char* fname, int fd){
       //}
 
 
-      for(int s = 0; s < strlen(fname); s++){
+      for(int s = 0; s < strlen(paths[pNum-2]); s++){
         I->name[s] = paths[pNum-2][s];
       }
 
@@ -590,16 +591,25 @@ struct inode * getInode(char * path[], int fd, int len){
   return temp;
 }
 
+//recursively searches FS for any dead end directories (directories with no inuse items)
+//and deletes them
+int cleanFS(int fd){
+
+
+  //return 0
+}
+
 void removefilefs(char* fname, int fd){
 
   int pNum = pathLength(fname);
   char * paths[pNum];
 
 
-  paths[0] = fname;
   pathNameConvert(fname, paths, pNum);
   struct inode * I = getInode(paths, fd, pNum);
   deleteInode(I, fd);
+
+  cleanFS(fd);
 }
 
 
