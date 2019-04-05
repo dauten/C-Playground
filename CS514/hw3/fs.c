@@ -254,9 +254,71 @@ void readFile(struct inode * F, int fd){
 
   }
 }
-void lsfs(){
 
+//given an array of directory names ending in filename, searches for that file's inode
+struct inode * getInodeByNumber(short int numb, int fd){
+  struct inode * I;
+
+
+  struct superblock *N=malloc(sizeof(struct superblock));
+  N = readRange(fd, 0, sizeof(struct superblock));
+  int i_zero = sizeof(struct superblock) + N->numOfBlocks/8; // first/0th inode
+  //search for first unfilled inode and put this there.
+  int i = -1;
+  struct inode * temp = malloc(sizeof(struct inode));
+  do{
+    I = readRange(fd, i_zero, i_zero+sizeof(struct inode));
+    i_zero+=sizeof(struct inode);
+    i++;
+  }
+  while(I->numb != numb);
+
+  if(I->inuse == 0){
+    printf("That led to a not-in-use inode.  The file may have been deleted.\n");
+    exit(1);
+  }
+
+  return I;
 }
+
+
+//given an inode
+void printTree(struct inode * I, int fd, int depth){
+  for(int i = 0; i <= depth; i++){
+    printf("  ");
+  }
+
+  printf("%s", I->name);
+  if(I->type == 2){
+    printf("/");
+  }
+  printf("\n");
+
+  for(int i = 0; i < I->size; i++){
+    //gets every number in I->content and calls this function
+    //recursively on its inode
+    struct inode * temp = getInodeByNumber(I->content[i], fd);
+    printTree(temp, fd, depth + 1);
+
+  }
+}
+
+
+
+void lsfs(int fd){
+  //get first inode and printTree it
+  struct superblock *N=malloc(sizeof(struct superblock));
+  N = readRange(fd, 0, sizeof(struct superblock));
+  int i_zero = sizeof(struct superblock) + N->numOfBlocks/8; // first/0th inode
+
+  //search for first unfilled inode and put this there.
+  struct inode * temp = malloc(sizeof(struct inode));
+  temp = readRange(fd, i_zero, i_zero+sizeof(struct inode));  //get root inode
+
+  printTree(temp, fd, 0);
+}
+
+
 
 //given a string pathname, converts it to array of string correspondng to component
 //files and directories (ie '/root/home/dale/sample.txt' becomes
@@ -305,31 +367,6 @@ void updateFBL(void * FBL, int fd){
   writeRange(fd, FBL, sizeof(struct superblock), sizeof(struct superblock)+temp);
 }
 
-//given an array of directory names ending in filename, searches for that file's inode
-struct inode * getInodeByNumber(short int numb, int fd){
-  struct inode * I;
-
-
-  struct superblock *N=malloc(sizeof(struct superblock));
-  N = readRange(fd, 0, sizeof(struct superblock));
-  int i_zero = sizeof(struct superblock) + N->numOfBlocks/8; // first/0th inode
-  //search for first unfilled inode and put this there.
-  int i = -1;
-  struct inode * temp = malloc(sizeof(struct inode));
-  do{
-    I = readRange(fd, i_zero, i_zero+sizeof(struct inode));
-    i_zero+=sizeof(struct inode);
-    i++;
-  }
-  while(I->numb != numb);
-
-  if(I->inuse == 0){
-    printf("That led to a not-in-use inode.  The file may have been deleted.\n");
-    exit(1);
-  }
-
-  return I;
-}
 
 
 void addInode(struct inode * I, char * path[], int fd, int len){
@@ -343,7 +380,7 @@ void addInode(struct inode * I, char * path[], int fd, int len){
   temp = readRange(fd, i_zero, i_zero+sizeof(struct inode));  //get root inode
 
   struct inode * temp2 = malloc(sizeof(struct inode));
-  printf("How many things are in root?  %d\n\n\n", temp->size);
+
   int curEl = 0;
   int exists = 0;
   do{
@@ -357,7 +394,7 @@ void addInode(struct inode * I, char * path[], int fd, int len){
       printf("\tLet's check is %s is part of it\n", temp2->name);
       printf("\t\tWe're comparing it to the next item, %s\n", path[curEl]);
       if(strcmp(temp2->name, path[curEl]) == 0){
-        printf("\t\t\they that was a match\n");
+
         i = temp->size;
         exists = 1;
       }
@@ -366,11 +403,8 @@ void addInode(struct inode * I, char * path[], int fd, int len){
     if(!exists){
       //then no folder in that dir exists, make one
       temp2 = makeDir(temp, fd, path[curEl]);
-      printf("Added inode with name %s\n", temp2->name);
     }
-    else{
-      printf("That dire already exists we aren't making another.\n");
-    }
+
 
     curEl++;
 
