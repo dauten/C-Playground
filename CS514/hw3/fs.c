@@ -298,7 +298,15 @@ void printTree(struct inode * I, int fd, int depth){
     //gets every number in I->content and calls this function
     //recursively on its inode
     struct inode * temp = getInodeByNumber(I->content[i], fd);
-    printTree(temp, fd, depth + 1);
+
+    if(temp->type == 2)
+      printTree(temp, fd, depth + 1);
+    else{
+      for(int i = 0; i <= depth+1; i++){
+        printf("  ");
+      }
+      printf("%s\n", temp->name);
+    }
 
   }
 }
@@ -387,12 +395,8 @@ void addInode(struct inode * I, char * path[], int fd, int len){
 
     exists = 0;
     //for every item in this directpry, check if that item is next part of path
-    printf("Seeing if directory %s already exists.  We have %d things to examine\n", path[curEl], temp->size);
     for(int i = 0; i < temp->size; i++){
-      printf("grabbing %dth item in %s\n%d\n", i, temp->name, temp->content[i]);
       temp2 = getInodeByNumber(temp->content[i], fd);
-      printf("\tLet's check is %s is part of it\n", temp2->name);
-      printf("\t\tWe're comparing it to the next item, %s\n", path[curEl]);
       if(strcmp(temp2->name, path[curEl]) == 0){
 
         i = temp->size;
@@ -409,14 +413,36 @@ void addInode(struct inode * I, char * path[], int fd, int len){
     curEl++;
 
     temp = temp2;
-
   }
   while(strcmp(temp->name, path[len-3]) != 0); //while inode is a directory
 
-  //create file like we used to only update temp to add it's number to temp.content
-  //temp is currently correspoi
 
-  printf("Warning, no Inode was added\n");
+
+  //create file like we used to only update temp to add it's number to temp.content
+  i_zero = sizeof(struct superblock) + N->numOfBlocks/8; // first/0th inode
+  do{
+    temp = readRange(fd, i_zero, i_zero+sizeof(struct inode));
+    I->numb++;
+    if(temp->inuse == 0){
+      writeRange(fd, I, i_zero, i_zero+sizeof(struct inode));
+      printf("Wrote file %s to %d\n", I->name, I->numb);
+      i_zero = sizeof(struct superblock) + N->numOfBlocks/8; // first/0th inode
+
+      //update temp2->content and write
+      temp2->content[temp2->size] = I->numb;
+      temp2->size++;
+      printf("The file is added to parent %s\n", temp2->name);
+      writeRange(fd, temp2, i_zero + sizeof(struct inode)*temp2->numb, i_zero + sizeof(struct inode)*(temp2->numb+1));
+
+      return;
+    }
+    i_zero += sizeof(struct inode);
+  }
+  while(temp->inuse == 1);
+
+
+
+
 }
 
 //given a pathname, returns inode for that file, updating
@@ -487,7 +513,7 @@ void addfilefs(char* fname, int fd){
         I->content[i] = B->numb;
         int start = blockAddress(B->numb, fd);
 
-          writeRange(fd, B, start, start+512);
+        writeRange(fd, B, start, start+512);
       }
       //write the inode and update parents
       addInode(I, paths, fd, pNum);
