@@ -125,6 +125,15 @@ void formatfs(int fd){
   M->sizeOfInodes = sizeof(struct inode);
 
   writeRange(fd, M, 0, 12);
+
+  //make root directory
+  int i_zero = sizeof(struct superblock) + M->numOfBlocks/8; // first/0th inode
+  //search for first unfilled inode and put this there.
+  struct inode * temp = malloc(sizeof(struct inode));
+  temp->type = 2;
+  temp->name[0] = 'r';
+  temp->inuse = 1;
+  writeRange(fd, temp, i_zero, i_zero + sizeof(struct inode));
 }
 
 
@@ -140,7 +149,6 @@ void loadfs(){
   //first 8 bytes of FS is # of blocks available.
   //second 8 bytes is # of inodes
   //third 8 bytes is size of inodes
-
 }
 
 
@@ -193,7 +201,39 @@ int blockAddress(short int block, int fd){
 
 //creates in fd an empty directory with given path
 //"mkdir' was taken :(
-void makeDir(int fd, char * path){
+struct inode * makeDir(struct inode * parent, int fd, char name[]){
+  printf("making new dir %s in %s\n", name, parent->name);
+  //find and allocate an inode directory with name names
+  struct superblock *N=malloc(sizeof(struct superblock));
+  N = readRange(fd, 0, sizeof(struct superblock));
+  int i_zero = sizeof(struct superblock) + N->numOfBlocks/8; // first/0th inode
+  int I = i_zero;
+  //search for first unfilled inode and put this there.
+  struct inode * temp = malloc(sizeof(struct inode));
+  struct inode * next = malloc(sizeof(struct inode));
+  next->numb = -1;
+  strcpy(next->name, name);
+  next->type = 2;
+
+  do{
+    temp = readRange(fd, i_zero, i_zero+sizeof(struct inode));
+    next->numb++;
+
+    if(temp->inuse == 0){
+      //add that to parent.content
+      parent->content[parent->size] = next->numb;
+      next->inuse = 1;
+      parent->size++;
+      writeRange(fd, parent, I + sizeof(struct inode)*parent->numb, I + sizeof(struct inode)*(parent->numb+1));
+      writeRange(fd, next, I + sizeof(struct inode)*next->numb, I + sizeof(struct inode)*(next->numb+1));
+
+      return next;
+    }
+    i_zero += sizeof(struct inode);
+  }
+  while(temp->inuse == 1);
+
+
 
 }
 
@@ -225,7 +265,7 @@ void lsfs(){
 int pathNameConvert(char * file, char * path[], int length){
   int i = 0;
   char * pch;
-
+  length--;
   pch = strtok (file,"/");
   while (pch != NULL)
   {
@@ -265,26 +305,90 @@ void updateFBL(void * FBL, int fd){
   writeRange(fd, FBL, sizeof(struct superblock), sizeof(struct superblock)+temp);
 }
 
-void addInode(struct inode * I, char * path[], int fd){
+//given an array of directory names ending in filename, searches for that file's inode
+struct inode * getInodeByNumber(short int numb, int fd){
+  struct inode * I;
+
+
+  struct superblock *N=malloc(sizeof(struct superblock));
+  N = readRange(fd, 0, sizeof(struct superblock));
+  int i_zero = sizeof(struct superblock) + N->numOfBlocks/8; // first/0th inode
+  //search for first unfilled inode and put this there.
+  int i = -1;
+  struct inode * temp = malloc(sizeof(struct inode));
+  do{
+    I = readRange(fd, i_zero, i_zero+sizeof(struct inode));
+    i_zero+=sizeof(struct inode);
+    i++;
+  }
+  while(I->numb != numb);
+
+  if(I->inuse == 0){
+    printf("That led to a not-in-use inode.  The file may have been deleted.\n");
+    exit(1);
+  }
+
+  return I;
+}
+
+
+void addInode(struct inode * I, char * path[], int fd, int len){
+
   struct superblock *N=malloc(sizeof(struct superblock));
   N = readRange(fd, 0, sizeof(struct superblock));
   int i_zero = sizeof(struct superblock) + N->numOfBlocks/8; // first/0th inode
 
   //search for first unfilled inode and put this there.
   struct inode * temp = malloc(sizeof(struct inode));
+  temp = readRange(fd, i_zero, i_zero+sizeof(struct inode));  //get root inode
 
+  struct inode * temp2 = malloc(sizeof(struct inode));
+  printf("How many things are in root?  %d\n\n\n", temp->size);
+  int curEl = 0;
+  int exists = 0;
   do{
-    temp = readRange(fd, i_zero, i_zero+sizeof(struct inode));
-    I->numb++;
-    if(temp->inuse == 0){
-      writeRange(fd, I, i_zero, i_zero+sizeof(struct inode));
-      return;
+
+    exists = 0;
+    //for every item in this directpry, check if that item is next part of path
+    printf("Seeing if directory %s already exists.  We have %d things to examine\n", path[curEl], temp->size);
+    for(int i = 0; i < temp->size; i++){
+      printf("grabbing %dth item in %s\n%d\n", i, temp->name, temp->content[i]);
+      temp2 = getInodeByNumber(temp->content[i], fd);
+      printf("\tLet's check is %s is part of it\n", temp2->name);
+      printf("\t\tWe're comparing it to the next item, %s\n", path[curEl]);
+      if(strcmp(temp2->name, path[curEl]) == 0){
+        printf("\t\t\they that was a match\n");
+        i = temp->size;
+        exists = 1;
+      }
     }
-    i_zero += sizeof(struct inode);
+
+    if(!exists){
+      //then no folder in that dir exists, make one
+      temp2 = makeDir(temp, fd, path[curEl]);
+      printf("Added inode with name %s\n", temp2->name);
+    }
+    else{
+      printf("That dire already exists we aren't making another.\n");
+    }
+
+    curEl++;
+
+    temp = temp2;
+
   }
-  while(temp->inuse == 1);
+  while(strcmp(temp->name, path[len-3]) != 0); //while inode is a directory
+
+  //create file like we used to only update temp to add it's number to temp.content
+  //temp is currently correspoi
 
   printf("Warning, no Inode was added\n");
+}
+
+//given a pathname, returns inode for that file, updating
+//or creating any directories when necessary
+struct inode * findInode(char * path[]){
+
 }
 
 void addfilefs(char* fname, int fd){
@@ -317,8 +421,12 @@ void addfilefs(char* fname, int fd){
 
 
       for(int s = 0; s < strlen(fname); s++){
-        I->name[s] = fname[s];
+        I->name[s] = paths[pNum-2][s];
       }
+
+      printf("fname is %s\n", paths[pNum-2]);
+
+
       I->numb = -1;
       I->inuse = 1;
       I->type = 1; //for file
@@ -348,7 +456,7 @@ void addfilefs(char* fname, int fd){
           writeRange(fd, B, start, start+512);
       }
       //write the inode and update parents
-      addInode(I, paths, fd);
+      addInode(I, paths, fd, pNum);
 
       //write the updated FBL
       updateFBL(FBL, fd);
@@ -364,7 +472,6 @@ void freeBlock(void * FBL, short int blocks){
   for(int i = 7; i > (blocks % 8); i--)
     target *= 2;
   ((int *)FBL)[chunk] ^= target;
-  printf("%02x\n", target);
 }
 
 //clears content and marks as not in use
@@ -394,6 +501,7 @@ struct inode * getInode(char * path[], int fd, int len){
   struct inode * I;
 
   char * fname = path[len-1];
+  printf("fname is %s\n", fname);
 
   struct superblock *N=malloc(sizeof(struct superblock));
   N = readRange(fd, 0, sizeof(struct superblock));
@@ -458,8 +566,11 @@ void meta(int fd){
     i_zero+=sizeof(struct inode);
     i++;
     //printf info about inodes
-    if(I->type)
-      printf("Inode %d has type %d, usage %d, and size %d\n", I->numb, I->type, I->inuse, I->size);
+    if(I->type != 0)
+      printf("Inode %d has type %d, usage %d, and size %d and name of %s\n", I->numb, I->type, I->inuse, I->size, I->name);
+      //for(int p = 0; p < I->size; p++){
+      //  printf("\t%d\n", I->content[p]);
+      //}
   }
   while(i_zero < blockAddress(0, fd));
   printf("any remaining inodes have never been allocated and are empty.\n");
