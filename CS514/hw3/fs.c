@@ -536,7 +536,7 @@ void freeBlock(void * FBL, short int blocks){
 }
 
 //clears content and marks as not in use
-void deleteInode(struct inode * F, int fd){
+void deleteInode(struct inode * F, int fd, char * paths[]){
 
   void * FBL = readFBL(fd);
   F->inuse = 0;
@@ -555,6 +555,47 @@ void deleteInode(struct inode * F, int fd){
 
   writeRange(fd, F, i_zero, i_zero+sizeof(struct inode));
   updateFBL(FBL, fd);
+}
+
+//given a list of directory names returns array of inode numbs of those names
+short int * pathToNumb(char * path[], int fd, int len){
+  short int * order = malloc(sizeof(short int) * len);
+  order[0] = 0; //first item in every path is root inode
+
+  struct superblock *N=malloc(sizeof(struct superblock));
+  N = readRange(fd, 0, sizeof(struct superblock));
+  int i_zero = sizeof(struct superblock) + N->numOfBlocks/8; // first/0th inode
+
+  //search for first unfilled inode and put this there.
+  struct inode * temp = malloc(sizeof(struct inode));
+  temp = readRange(fd, i_zero, i_zero+sizeof(struct inode));  //get root inode
+  struct inode * temp2 = malloc(sizeof(struct inode));
+
+  int curEl = 0;
+
+  printf("retreiving %d numbers\n", len);
+  for(int y = 1; y < len; y++){
+    //for every item in this directpry, check if that item is next part of path
+    for(int i = 0; i < temp->size; i++){
+      printf("checking if inode %d is on path\n", temp->content[i]);
+      temp2 = getInodeByNumber(temp->content[i], fd);
+      printf("checking if %s is equal to %s\n", temp2->name, path[curEl]);
+      if(strcmp(temp2->name, path[curEl]) == 0){
+        temp = temp2;
+        i = 99999;
+
+      }
+    }
+
+    curEl++;
+    printf("\tassignin to order[%d], %s::%d\n", y, temp->name, temp->numb);
+    order[y] = temp2->numb;
+  }
+
+  for(int i = 0; i < len; i++){
+    printf("%d\n", order[i]);
+  }
+  return order;
 }
 
 //given an array of directory names ending in filename, searches for that file's inode
@@ -603,13 +644,48 @@ void removefilefs(char* fname, int fd){
 
   int pNum = pathLength(fname);
   char * paths[pNum];
-
-
   pathNameConvert(fname, paths, pNum);
+  short int * numbs = pathToNumb(paths, fd, pNum);
   struct inode * I = getInode(paths, fd, pNum);
-  deleteInode(I, fd);
+  deleteInode(I, fd, paths);
+  printf("%d\n\n\n", pNum);
+  pNum -= 2;  //this is parent of inode
 
-  cleanFS(fd);
+  printf("updateing directory structure...\n");
+
+  struct superblock *N=malloc(sizeof(struct superblock));
+  N = readRange(fd, 0, sizeof(struct superblock));
+  int i_zero = sizeof(struct superblock) + N->numOfBlocks/8; // first/0th inode
+
+
+  while(pNum >= 0){
+
+    struct inode * parent = getInodeByNumber(numbs[pNum], fd);
+    printf("that inode has parent of %d\n", parent->numb);
+
+    for(int i = 0; i < parent->size; i++){
+      //search parent->content for removed inode and delete it
+      if(parent->content[i] == numbs[pNum+1]){
+        parent->content[i] = 0;
+      }
+    }
+    parent->size--; //reduce size of parent by one
+    printf("that dir ow has a size of %d\n", parent->size);
+    if(parent->size == 0){
+      //if no items remoain in directory mark as not inuse and iterate down to this parent
+      pNum--;
+      parent->inuse = (parent->numb==0);//only mark as not in use if its not root
+
+      //write parent to its location
+      writeRange(fd, parent, sizeof(struct inode)*parent->numb + i_zero, sizeof(struct inode)*(1+parent->numb) + i_zero);
+      I = parent;
+    }
+    else{
+      //write parent to its location then exit
+      writeRange(fd, parent, sizeof(struct inode)*parent->numb + i_zero, sizeof(struct inode)*(1+parent->numb) + i_zero);
+      return;
+    }
+  }
 }
 
 
