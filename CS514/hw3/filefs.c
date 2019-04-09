@@ -100,8 +100,6 @@ int main(int argc, char** argv){
     formatfs(fd);
   }
 
-  loadfs();
-
   if (add){
     addfilefs(toadd, fd);
   }
