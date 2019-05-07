@@ -28,7 +28,7 @@ static int hello_getattr(const char *path, struct stat *stbuf)
 	memset(stbuf, 0, sizeof(struct stat));
 	if (strcmp(path, "/") == 0) {
 		stbuf->st_mode = S_IFDIR | 0755;
-		stbuf->st_nlink = 2;
+		stbuf->st_nlink = 1;
 	} else if (strcmp(path, hello_path) == 0) {
 		stbuf->st_mode = S_IFREG | 0444;
 		stbuf->st_nlink = 1;
