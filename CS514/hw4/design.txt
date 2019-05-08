@@ -1,0 +1,59 @@
+So, this program works but only in the same sense that a bus that's on fire works.
+It can technically operate, but you won't like it.
+
+In terms of what it can do:
+Given file system named fuse_fs it can mount this and files in that
+file system can be accessed via terminal.
+
+What it can't do:
+The file system is read only, files cannot be added and all items are set to permissions
+444.  Also for some reason readdir isn't working.  It doesn't give an error in FUSE's
+debugging mode but I get an input/output error when I try to ls a directory
+any deeper than mnt.  getattr still works, as does read, but you can't ls to see
+what's in the directories and this also means auto complete doesn't work.  If you know
+an item is at /A/B/C.txt you can still cat that and it will be printed though.
+Additional metadata like dates and file size are also not included/accurate but
+honestly that's the least of our worries.
+
+I've found an error in my previous filefs project where when you added a file,
+only every other directory in its path was inserted.  This error came from
+overzealous optimization and I've included the updated, working code in a filefs/
+folder for you to construct a file system before mounting it since this project
+is read only.
+
+Due to a peculiarity with how my root folder is treated in my filefs program
+my "get items in this folder" function for this project doesn't work on it,
+only on deeper folders.
+As such I've hardcoded that all items must be prefixed with /home (items like
+/A.txt and /var/B.txt cannot be accessed).  This is a shortcoming but I can't
+imagine this will impact your testing much.
+
+As one other limitation, this implementation can only print the first block worth
+of data for files.  So instead of the 496000 byte file limit for my filefs project
+this is limited to a mere 496.  This comes from me not having time to create
+a void * that consists of every block of data so I just return the first one.
+
+Sample usage:
+I created a file system, fuse_fs, for testing with the following structure:
+r/
+  home/
+    fs.h
+    dale/
+      archer.py
+      C-Playground/
+        makefile
+        CS514/
+          hw3/
+            fs.c
+(as stated everything must be under home dir)
+
+moving this into the same folder with the executable and then executing it,
+the file system is mounted (at mnt/ for my testing).  By ls'ing mnt you can
+see the hard coded home folder.  This will be here regardless of if you have
+a home folder in fuse_fs.  Because of the issue with readdir you can't ls home
+to see what's in it and you can't autocomplete to see what's in it either.
+Intead, I can run `cd mnt/home/` to move into the home folder.  I still can't ls
+but I can `cat fs.h` and fs.h is read from fuse_fs and printed.  I can then
+`cd dale/C-Playground/CS514/hw3` (or any other path in the file system).  If I run
+`cat fs.c` fs.c is printed to the terminal but only the first 496 or so bytes--
+whatever's in the first block.

@@ -628,6 +628,7 @@ struct inode * getInode(char * path[], int fd, int len){
     for(int i = 0; i < temp->size; i++){
       temp2 = getInodeByNumber(temp->content[i], fd);
       if(strcmp(temp2->name, path[curEl]) == 0){
+        printf("\n%s matches %s\n\n", temp2->name, path[curEl]);
         temp = temp2;
         i = 99999;
 
@@ -638,7 +639,7 @@ struct inode * getInode(char * path[], int fd, int len){
 
     temp = temp2;
   }
-  while(temp->type != 1); //while inode is a directory
+  while(curEl < len-1); //while inode is a directory
 
   return temp;
 }
@@ -730,7 +731,7 @@ void meta(int fd){
 
 }
 
-void setattr(const char *fname, struct stat *stbuf){
+struct stat * setattr(const char *fname, struct stat *stbuf){
   //tldr just find if this is a file or a dir and set it accordingly
   int pNum = pathLength(fname);
   char * paths[pNum];
@@ -738,13 +739,43 @@ void setattr(const char *fname, struct stat *stbuf){
   pathNameConvert(fname, paths, pNum);
   struct inode * I = getInode(paths, fd, pNum);
 
+  printf("\n\n\nChecking %s / %s / %s, type %d\n\n\n", fname, paths[0], I->name, I->type);
   if(I->type == 1){
-    stbuf->st_mode = S_IFREG | 0444;
+    printf("Setting as file\n");
+    stbuf->st_mode = S_IFREG | 0777;
     stbuf->st_nlink = 1;
     stbuf->st_size = 496000;
   } else{
     stbuf->st_mode = S_IFDIR | 0755;
-    stbuf->st_nlink = 1;
+		stbuf->st_nlink = 1;
   }
 
+  return stbuf;
+
+}
+
+
+
+fuse_fill_dir_t fillbuf(const char *fname, void *buf, fuse_fill_dir_t filler){
+  int pNum = pathLength(fname);
+  char * paths[pNum];
+  int fd = open("fuse_fs", O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+  pathNameConvert(fname, paths, pNum);
+  struct inode * I = getInode(paths, fd, pNum);
+  printf("\nChecking %s, type %d, first child is %d\n\n", fname, I->type, I->content[0]);
+
+
+  //for every child of I, add that to filler
+  //iterate through all items below this inode
+  for(int i = 0; i < I->size; i++){
+    //gets every number in I->content and calls this function
+    //recursively on its inode
+    struct inode * temp = getInodeByNumber(I->content[i], fd);
+    char *t2 = strcat(fname, "/");
+    char *t3 = strcat(t2, temp->name);
+    printf("\nadding to buffer %s\n\n", t3);
+    filler(buf, t3, NULL, 0);
+    }
+    printf("\n%d\n\n", filler);
+    return filler;
 }

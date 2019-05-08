@@ -23,17 +23,15 @@ static int hello_getattr(const char *path, struct stat *stbuf)
 {
 	int res = 0;
 
+	printf("\n\nAttempting to set attr of %s\n\n\n", path);
+
 	memset(stbuf, 0, sizeof(struct stat));
-	if (strcmp(path, "/") == 0) {
-		stbuf->st_mode = S_IFDIR | 0755;
-		stbuf->st_nlink = 1;
-	}
-	else if(strcmp(path, "/hello_dir") == 0){
+	if( (strcmp(path, "/") == 0) || (strcmp(path, ".") == 0) || (strcmp(path, "..") == 0) ){
 		stbuf->st_mode = S_IFDIR | 0755;
 		stbuf->st_nlink = 1;
 	}
 	else
-		setattr(path, stbuf);
+		stbuf = setattr(path, stbuf);
 
 	return res;
 }
@@ -47,24 +45,21 @@ static int hello_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 	if (strcmp(path, "/") != 0){
 			filler(buf, ".", NULL, 0);
 			filler(buf, "..", NULL, 0);
-
-			//in the future, instead of fs.h magically being the only thing in each non-root
-			//directory we should go through and get a list of all items in that dir
-
-			return -EACCES;
-		}
+			filler(buf, "/home/dale"+1, NULL, 0);
+			//filler = fillbuf(path, buf, filler);
+			printf("\n\n%d\n\n\n\n", filler);
+			return 0;
+	}
 
 	filler(buf, ".", NULL, 0);
 	filler(buf, "..", NULL, 0);
-	filler(buf, "/hello_dir" + 1, NULL, 0);
+	filler(buf, "/home" + 1, NULL, 0);
+
 	return 0;
 }
 
 static int hello_open(const char *path, struct fuse_file_info *fi)
 {
-	if ((fi->flags & 3) != O_RDONLY)
-		return -EACCES;
-
 	return 0;
 }
 
