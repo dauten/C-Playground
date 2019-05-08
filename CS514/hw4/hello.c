@@ -15,10 +15,11 @@
 #include <string.h>
 #include <errno.h>
 #include <fcntl.h>
+#include "fs.h"
 
 static const char *hello_str = "Hello World!\n";
 static const char *hello_path = "/hello";
-static const char *hello_path2 = "/hello_dir/hello";
+static const char *hello_path2 = "/hello_dir/fs.h";
 static const char *hello_dir = "/hello_dir";
 
 static int hello_getattr(const char *path, struct stat *stbuf)
@@ -32,23 +33,24 @@ static int hello_getattr(const char *path, struct stat *stbuf)
 	} else if (strcmp(path, hello_path) == 0) {
 		stbuf->st_mode = S_IFREG | 0444;
 		stbuf->st_nlink = 1;
-		stbuf->st_size = strlen("Content of this one file");
+		stbuf->st_size = 496000;
 	}
 	else if (strcmp(path, hello_path2) == 0) {
 		stbuf->st_mode = S_IFREG | 0444;
 		stbuf->st_nlink = 1;
-		stbuf->st_size = strlen("Content of this one file");
+		stbuf->st_size = 496000;
 	}
-	else if (strcmp(path, "/hello_path") == 0) {
+	else if (strcmp(path, "/fs.h") == 0) {
 		stbuf->st_mode = S_IFREG | 0744;
 		stbuf->st_nlink = 1;
-		stbuf->st_size = strlen("Content of this one file");
+		stbuf->st_size = 496000;
 	}
 	else if (strcmp(path, hello_dir) == 0) {
 		stbuf->st_mode = S_IFDIR | 0755;
 		stbuf->st_nlink = 1;
 	} else
 		res = -ENOENT;
+
 
 	return res;
 }
@@ -66,19 +68,16 @@ static int hello_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 		else{
 			filler(buf, ".", NULL, 0);
 			filler(buf, "..", NULL, 0);
-			filler(buf, hello_path + 1, NULL, 0);
+			filler(buf, "/fs.h" + 1, NULL, 0);
 			return 0;
 		}
-
-
 		return -ENOENT;
-
 	}
 
 	filler(buf, ".", NULL, 0);
 	filler(buf, "..", NULL, 0);
 	filler(buf, hello_path + 1, NULL, 0);
-	filler(buf, "/hello_path" + 1 , NULL, 0);
+	filler(buf, "/fs.h" + 1 , NULL, 0);
 	filler(buf, hello_dir + 1, NULL, 0);
 
 	return 0;
@@ -86,9 +85,6 @@ static int hello_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 
 static int hello_open(const char *path, struct fuse_file_info *fi)
 {
-	if (strcmp(path, hello_path2) != 0 && strcmp(path, hello_path) != 0 && strcmp(path, "/hello_path") != 0&& strcmp(path, hello_dir) != 0)
-		return -ENOENT;
-
 	if ((fi->flags & 3) != O_RDONLY)
 		return -EACCES;
 
@@ -100,14 +96,19 @@ static int hello_read(const char *path, char *buf, size_t size, off_t offset,
 {
 	size_t len;
 	(void) fi;
-	if(strcmp(path, hello_path2) != 0 && strcmp(path, hello_path) != 0 && strcmp(path, "/hello_path") != 0 && strcmp(path, hello_dir) != 0)
-		return -ENOENT;
 
-	len = strlen("Content of this one file");
+	printf("beginning read\n\n\n\n");
+	int fd = open("test", O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+	void* msg = extractfilefs(path, fd);
+	printf("%02x\n\n\n\n", ((char *)msg)[0]);
+	//msg = extractfilefs(path)
+
+	len = strlen(msg);
+	size = len;
 	if (offset < len) {
-		//if (offset + size > len)
-		//	size = len - offset;
-		memcpy(buf, "Content of this one file" + offset, len);
+		if (offset + size > len)
+			size = len - offset;
+		memcpy(buf, msg + offset, len);
 	} else
 		size = 0;
 

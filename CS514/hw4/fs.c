@@ -43,9 +43,6 @@ struct superblock{
   int sizeOfInodes;
 };
 
-struct bitmap{
-
-};
 
 void mapfs(int fd){
   if ((fs = mmap(NULL, FSSIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0)) == NULL){
@@ -223,7 +220,7 @@ struct inode * makeDir(struct inode * parent, int fd, char name[]){
 
 
 //given the inode for a file, reconstruct file and out() it
-void readFile(struct inode * F, int fd){
+void * readFile(struct inode * F, int fd){
 
   //iterate through every block
   for(int i = 0; i < F->size; i++){
@@ -236,9 +233,9 @@ void readFile(struct inode * F, int fd){
     B = readRange(fd, addr, addr+512);
 
     //dumps raw data to stdout
-    dump(B->content, B->size);
-
+    return B->content;
   }
+  return "failed to find data for that file\n";
 }
 
 //given an array of directory names ending in filename, searches for that file's inode
@@ -695,14 +692,14 @@ void removefilefs(char* fname, int fd){
 }
 
 //get inode of file and read it
-void extractfilefs(char* fname, int fd){
+void * extractfilefs(char* fname, int fd){
   int pNum = pathLength(fname);
   char * paths[pNum];
 
   pathNameConvert(fname, paths, pNum);
   struct inode * I = getInode(paths, fd, pNum);
 
-  readFile(I, fd);
+  return readFile(I, fd);
 }
 
 /*
