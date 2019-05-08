@@ -12,7 +12,7 @@
 #include <errno.h>
 
 #include <sys/mman.h>
-
+#include <fuse.h>
 
 
 struct block{
@@ -727,5 +727,24 @@ void meta(int fd){
   }
   while(i_zero < blockAddress(0, fd));
   printf("any remaining inodes have never been allocated and are empty.\n");
+
+}
+
+void setattr(const char *fname, struct stat *stbuf){
+  //tldr just find if this is a file or a dir and set it accordingly
+  int pNum = pathLength(fname);
+  char * paths[pNum];
+  int fd = open("fuse_fs", O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+  pathNameConvert(fname, paths, pNum);
+  struct inode * I = getInode(paths, fd, pNum);
+
+  if(I->type == 1){
+    stbuf->st_mode = S_IFREG | 0444;
+    stbuf->st_nlink = 1;
+    stbuf->st_size = 496000;
+  } else{
+    stbuf->st_mode = S_IFDIR | 0755;
+    stbuf->st_nlink = 1;
+  }
 
 }
