@@ -742,11 +742,11 @@ struct stat * setattr(const char *fname, struct stat *stbuf){
   printf("\n\n\nChecking %s / %s / %s, type %d\n\n\n", fname, paths[0], I->name, I->type);
   if(I->type == 1){
     printf("Setting as file\n");
-    stbuf->st_mode = S_IFREG | 0777;
+    stbuf->st_mode = S_IFREG | 0444;
     stbuf->st_nlink = 1;
-    stbuf->st_size = 496000;
+    stbuf->st_size = 496;
   } else{
-    stbuf->st_mode = S_IFDIR | 0755;
+    stbuf->st_mode = S_IFDIR | 0444;
 		stbuf->st_nlink = 1;
   }
 
@@ -756,7 +756,7 @@ struct stat * setattr(const char *fname, struct stat *stbuf){
 
 
 
-fuse_fill_dir_t fillbuf(const char *fname, void *buf, fuse_fill_dir_t filler){
+void * fillbuf(const char *fname, void *buf, fuse_fill_dir_t filler){
   int pNum = pathLength(fname);
   char * paths[pNum];
   int fd = open("fuse_fs", O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
@@ -765,17 +765,22 @@ fuse_fill_dir_t fillbuf(const char *fname, void *buf, fuse_fill_dir_t filler){
   printf("\nChecking %s, type %d, first child is %d\n\n", fname, I->type, I->content[0]);
 
 
+  char *bkp = malloc(sizeof(fname));
+  strcpy(bkp, fname);
   //for every child of I, add that to filler
   //iterate through all items below this inode
   for(int i = 0; i < I->size; i++){
     //gets every number in I->content and calls this function
     //recursively on its inode
     struct inode * temp = getInodeByNumber(I->content[i], fd);
-    char *t2 = strcat(fname, "/");
-    char *t3 = strcat(t2, temp->name);
-    printf("\nadding to buffer %s\n\n", t3);
-    filler(buf, t3, NULL, 0);
+    printf("fname is %s\n\n", fname);
+
+    printf("\nadding to buffer %s\n\n", fname);
+    filler(buf, temp->name, NULL, 0);
+    strcpy(fname, bkp);
     }
-    printf("\n%d\n\n", filler);
-    return filler;
+    printf("\n%d\n\n", buf);
+
+    dump(buf, 1000);
+    return buf;
 }

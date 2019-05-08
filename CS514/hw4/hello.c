@@ -45,9 +45,10 @@ static int hello_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 	if (strcmp(path, "/") != 0){
 			filler(buf, ".", NULL, 0);
 			filler(buf, "..", NULL, 0);
-			filler(buf, "/home/dale"+1, NULL, 0);
-			//filler = fillbuf(path, buf, filler);
-			printf("\n\n%d\n\n\n\n", filler);
+			//filler(buf, "/dale"+1, NULL, 0);
+			//filler(buf, "/fs.h"+1, NULL, 0);
+			buf = fillbuf(path, buf, filler);
+			printf("\n\n%d\n\n\n\n", buf);
 			return 0;
 	}
 
